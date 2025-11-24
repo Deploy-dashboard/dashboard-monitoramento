@@ -50,6 +50,8 @@ programas = {"null" : ["null"],
             129 : [2132, "null"]
             }
 
+subprogramas = ["null", 2026, 2050, 2070, 2075, 2082, 2085, 2087, 2091, 2104, 2132]
+
 
 def atualiza_id(id):
 
@@ -129,8 +131,11 @@ def report_tab2():
     
     instrumentos = df['Instrumento'].unique().tolist()
     instrumentos.append("null")
+
+    sp = st.selectbox("Suprograma",options=subprogramas, key="sp_tab2")
+    
     inst = st.selectbox("Instrumento", options=instrumentos)
-    url_instrumento = f'http://10.0.10.22:41112/gw/reports/generate_report_xls/CAED7028-1707:2025/9/ID_FONTE_DADO={"null"}&CD_PROGRAMA=null&DC_INSTRUMENTO_TIPO={inst}'
+    url_instrumento = f'http://10.0.10.22:41112/gw/reports/generate_report_xls/CAED7028-1707:2025/9/ID_FONTE_DADO={"null"}&CD_PROGRAMA={sp}&DC_INSTRUMENTO_TIPO={inst}'
     
     response1 = requests.get(url_instrumento)
     ex = BytesIO(response1.content)
@@ -267,7 +272,7 @@ def dashboard():
 
 
     with tab2:
-        st.header("Relatório Processamento - Subprograma / Tipo de Instrumento / Pagina ")
+        st.header("Relatório Processamento por instrumento:")
         report_tab2()
 
 
@@ -279,10 +284,10 @@ def dashboard():
 
 
 
+if __name__ == "__main__":
 
-
-if st.session_state['logged_in']:
-    dashboard()
-else:
-    login_page()
+    if st.session_state['logged_in']:
+        dashboard()
+    else:
+        login_page()
 
