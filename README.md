@@ -1,2 +1,2 @@
 # dashboard_cpd
-Repositório contendo os códigos do dashbaoard dos repositórios CPD 
+Repositório contendo os códigos do dashboard dos repositórios CPD 
