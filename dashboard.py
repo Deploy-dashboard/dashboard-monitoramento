@@ -25,7 +25,7 @@ def login_page():
     )
     st.markdown("### Repositório CPD")
     client = Client()
-    st.set_page_config(page_title="Login", layout="centered", page_icon="images\icon.png")
+    st.set_page_config(page_title="Login", layout="centered", page_icon="images\\icon.png")
     st.markdown("Entre com o nome de usuário e senha:")
 
     username = st.text_input("Usuário")
@@ -94,13 +94,13 @@ def report_tab1():
         x=labels,
         y=decodificados,
         name="Decodificados",
-        marker_color='yellow',
+        marker_color='#4169E1',
         offsetgroup=0
     ))
 
 
     fig.update_layout(
-        title="Comparativo de Registros processados: ",
+        title="Comparativo de registros processados: ",
         xaxis_title="Código do Subprograma",
         yaxis_title="Registros processados (%)",
         barmode='group',  
@@ -114,7 +114,7 @@ def report_tab1():
             yanchor='bottom',
             y=1.05,
             xanchor='right',
-            x=1
+            x=1,
         )
     )
 
@@ -141,11 +141,14 @@ def report_tab2():
     ex = BytesIO(response1.content)
     table = pd.DataFrame(pd.read_excel(ex))
     table = table.drop_duplicates(subset=['Cód. subprograma', 'Instrumento'])
+    table["Total de registros digitalizados"] = pd.to_numeric(table["Total de registros digitalizados"], errors="coerce")
+    table["Total de registros previstos"] = pd.to_numeric(table["Total de registros previstos"], errors="coerce")
+    table["% de registros digitalizados"] = ((table["Total de registros digitalizados"] / table["Total de registros previstos"]) * 100).round(2)
 
-    if instrumentos != "null":
-        st.markdown("**Tabela:**")
-        st.dataframe(table, hide_index=True)
+    st.markdown("**Tabela:**")
+    st.dataframe(table, hide_index=True)
 
+    if (inst != "null") and (sp == "null"):
         labels = table["Cód. subprograma"].astype(str)
         processados = table["% de registros processados"]
         
@@ -155,7 +158,7 @@ def report_tab2():
             x=labels,
             y=processados,
             name="Decodificados",
-            marker_color='yellow',
+            marker_color='#4169E1',
             offsetgroup=0
         ))
 
@@ -171,15 +174,53 @@ def report_tab2():
             template="plotly_white",
         )
 
-        st.plotly_chart(barras, width="stretch")
+        st.plotly_chart(barras)
 
-        pizza = go.Figure(data=[go.Pie(labels=df["Instrumento"], values=df["Total de registros previstos"])])
+    elif (inst == "null") and (sp != "null"):
+        labels = table["Instrumento"].astype(str)
+        processados = table["% de registros processados"]
+        digitalizados = table["% de registros digitalizados"]
+        
+        barras = go.Figure()
+
+        barras.add_trace(go.Bar(
+            x=labels,
+            y=processados,
+            name="processados",
+            marker_color='#4169E1',
+            offsetgroup=0
+        ))
+
+        barras.add_trace(go.Bar(
+            x=labels,
+            y=digitalizados,
+            name="Certificados",
+            marker_color='lightblue',
+            offsetgroup=1
+        ))
+
+        barras.update_layout(
+            title=f"Comparativo de Instrumentos no programa {sp}: ",
+            xaxis_title="Instrumento",
+            yaxis_title="Registros processados (%)",
+            barmode='group',
+            xaxis_tickangle=-15,
+            bargap=0.15,      
+            bargroupgap=0.05, 
+            template="plotly_white",
+        )
+
+        st.plotly_chart(barras)
+        
+    
+
+    pizza = go.Figure(data=[go.Pie(labels=df["Instrumento"], values=df["Total de registros previstos"])])
 
 
-        pizza.update_traces(textposition='inside', textinfo='percent+label')
-        pizza.update_layout(title="Distribuição de instrumentos:", showlegend=True)
+    pizza.update_traces(textposition='inside', textinfo='percent+label')
+    pizza.update_layout(title="Distribuição de instrumentos:", showlegend=True)
 
-        st.plotly_chart(pizza, width="stretch") 
+    st.plotly_chart(pizza, width="stretch") 
 
 
 def report_tab3():
@@ -202,7 +243,7 @@ def report_tab3():
         x=labels,
         y=verificacoes,
         name="Total de verificações",
-        marker_color='yellow',
+        marker_color='#4169E1',
         offsetgroup=0,
     ))
 
@@ -264,30 +305,28 @@ def dashboard():
     st.title("Dashboards")
     st.set_page_config(page_title="Dashboard", layout="wide", page_icon="images\icon.png")
     
-    tab1, tab2, tab3 = st.tabs(["processamento", "instrumento", "verificação"])
+    tab1, tab2 = st.tabs(["processamento / instrumento", "verificação"])
 
     with tab1:
         st.header("Relatórios de processamento:")
         report_tab1()
 
-
-    with tab2:
         st.header("Relatório Processamento por instrumento:")
         report_tab2()
 
 
-
-    with tab3:
+    with tab2:
         st.header("Relatório Verificação - Subprograma / Solicitação ")
         report_tab3()
 
 
 
 
-if __name__ == "__main__":
+# if __name__ == "__main__":
 
-    if st.session_state['logged_in']:
-        dashboard()
-    else:
-        login_page()
+#     if st.session_state['logged_in']:
+#         dashboard()
+#     else:
+#         login_page()
 
+dashboard()
