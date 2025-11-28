@@ -50,8 +50,26 @@ programas = {"null" : ["null"],
             129 : [2132, "null"]
             }
 
-subprogramas = ["null", 2026, 2050, 2070, 2075, 2082, 2085, 2087, 2091, 2104, 2132]
+subprogramas = ["Todos", 
+                "2026 - MG BELO HORIZONTE - 3ª AV. SOMATIVA 2025 (SIMULADO)", 
+                "2050 - BR CAEd - PPGP 2025", 
+                "2070 - GO GOIÁS - AV. SOMATIVA EF EM 2025 (SAEGO)", 
+                "2075 - CE CEARÁ - AV. SOMATIVA EM 2025 (SPAECE EM)", 
+                "2082 - TO TOCANTINS - 1ª AV. SOMATIVA 2025 (SIMULADO)", 
+                "2085 - MT MATO GROSSO - AV. SOMATIVA 2025 EF EM (AVALIA MT)", 
+                "2087 - MG BELO HORIZONTE - 5ª AV. FORMATIVA 2025 (NOVEMBRO)", 
+                "2091 - PE RECIFE - 3ª AV. FORMATIVA 2025",
+                "2101 - SC FLORIANÓPOLIS - 2ª AV. SOMATIVA 2025", 
+                "2132 - PI PIAUÍ - AV. SOMATIVA 2025 EF EM (SAEPI)",
+                "2104 - BR CAEd - PRÉ-TESTE 2025 - LOTE 04 (BANCO)"
+                ]
 
+def num_sp(sp):
+    if sp != "Todos":
+        num = sp[0:4]
+        num = int(num)
+        return num
+    return "null"
 
 def atualiza_id(id):
 
@@ -75,8 +93,10 @@ def atualiza_id(id):
 
 
 def report_tab1():
-
-    url = f'http://10.0.10.22:41112/gw/reports/generate_report_xls/CAED7027-1707:2025/9/ID_FONTE_DADO="null"&CD_PROGRAMA=null'
+    
+    select_sp = st.selectbox("Suprograma",options=subprogramas, key="sp_tab1")
+    sp = num_sp(select_sp)
+    url = f'http://10.0.10.22:41112/gw/reports/generate_report_xls/CAED7027-1707:2025/9/ID_FONTE_DADO="null"&CD_PROGRAMA={sp}'
     response = requests.get(url)
     response.raise_for_status()
 
@@ -85,40 +105,41 @@ def report_tab1():
     st.markdown("**Tabela:**")
     st.dataframe(df, hide_index=True)
     
-    labels = df["Cód. subprograma"].astype(str)  
-    decodificados = df["% de registros processados"]
+    if sp == "null":
+        labels = df["Cód. subprograma"].astype(str)  
+        decodificados = df["% de registros processados"]
 
-    fig = go.Figure()
+        fig = go.Figure()
 
-    fig.add_trace(go.Bar(
-        x=labels,
-        y=decodificados,
-        name="Decodificados",
-        marker_color='#4169E1',
-        offsetgroup=0
-    ))
+        fig.add_trace(go.Bar(
+            x=labels,
+            y=decodificados,
+            name="Decodificados",
+            marker_color='#4169E1',
+            offsetgroup=0
+        ))
 
 
-    fig.update_layout(
-        title="Comparativo de registros processados: ",
-        xaxis_title="Código do Subprograma",
-        yaxis_title="Registros processados (%)",
-        barmode='group',  
-        xaxis_tickangle=0,
-        bargap=0.15,      
-        bargroupgap=0.05, 
-        template="plotly_white",
-        legend=dict(
-            title='',
-            orientation='h',
-            yanchor='bottom',
-            y=1.05,
-            xanchor='right',
-            x=1,
+        fig.update_layout(
+            title="Comparativo de registros processados: ",
+            xaxis_title="Código do Subprograma",
+            yaxis_title="Registros processados (%)",
+            barmode='group',  
+            xaxis_tickangle=0,
+            bargap=0.15,      
+            bargroupgap=0.05, 
+            template="plotly_white",
+            legend=dict(
+                title='',
+                orientation='h',
+                yanchor='bottom',
+                y=1.05,
+                xanchor='right',
+                x=1,
+            )
         )
-    )
 
-    st.plotly_chart(fig, width="stretch")
+        st.plotly_chart(fig, width="stretch")
 
 def report_tab2():
     
@@ -130,11 +151,14 @@ def report_tab2():
     df = pd.DataFrame(pd.read_excel(excel))
     
     instrumentos = df['Instrumento'].unique().tolist()
-    instrumentos.append("null")
+    instrumentos.append("Todos")
 
-    sp = st.selectbox("Suprograma",options=subprogramas, key="sp_tab2")
+    select_sp = st.selectbox("Suprograma",options=subprogramas, key="sp_tab2")
+    sp = num_sp(select_sp)
     
     inst = st.selectbox("Instrumento", options=instrumentos)
+    if inst == "Todos":
+        inst = "null"
     url_instrumento = f'http://10.0.10.22:41112/gw/reports/generate_report_xls/CAED7028-1707:2025/9/ID_FONTE_DADO={"null"}&CD_PROGRAMA={sp}&DC_INSTRUMENTO_TIPO={inst}'
     
     response1 = requests.get(url_instrumento)
