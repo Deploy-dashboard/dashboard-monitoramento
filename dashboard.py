@@ -2,7 +2,7 @@ from io import BytesIO
 from client import Client
 import streamlit as st
 import pandas as pd
-import requests, re
+import requests
 import plotly.graph_objects as go
 
 if 'logged_in' not in st.session_state:
@@ -280,6 +280,11 @@ def report_tab3():
     content = BytesIO(response.content)
     df = pd.DataFrame(pd.read_excel(content))
     resume = df.loc[df["Verificação"] == ("Subtotal")]
+
+    global subprogramas
+    mapa_sub = { s.split(" - ")[0]: " - ".join(s.split(" - ")[1:]) for s in subprogramas if s != "Todos"}
+    resume.insert(1, "Nome subprograma", resume["Cód. subprograma"].astype(str).map(mapa_sub))
+
     st.markdown("**Verificações finalizadas por programa:**")
     st.dataframe(resume, hide_index=True)
 
