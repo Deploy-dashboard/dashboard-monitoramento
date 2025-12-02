@@ -139,7 +139,7 @@ def report_tab1():
             x=labels,
             y=digitalizados,
             name="Digitalizados",
-            marker_color='lightblue',
+            marker_color="#008080",
             offsetgroup=2
         ))
 
@@ -275,20 +275,22 @@ def report_tab2():
 
 def report_tab3():
     
-    sol = f"http://10.0.10.22:41112/gw/reports/generate_report_xls/CAED7029-2307:2025/9/ID_FONTE_DADO=null&CD_PROGRAMA=null&DC_SOLICITACAO=null"
+    global subprogramas
+    subprog = st.selectbox("Suprograma",options=subprogramas, key="subprog_tab3")
+    ns = num_sp(subprog)
+    sol = f"http://10.0.10.22:41112/gw/reports/generate_report_xls/CAED7029-2307:2025/9/ID_FONTE_DADO=null&CD_PROGRAMA={ns}&DC_SOLICITACAO=null"
     response = requests.get(sol)
     content = BytesIO(response.content)
     df = pd.DataFrame(pd.read_excel(content))
     resume = df.loc[df["Verificação"] == ("Subtotal")]
 
-    global subprogramas
     mapa_sub = { s.split(" - ")[0]: " - ".join(s.split(" - ")[1:]) for s in subprogramas if s != "Todos"}
     resume.insert(1, "Nome subprograma", resume["Cód. subprograma"].astype(str).map(mapa_sub))
 
     st.markdown("**Verificações finalizadas por programa:**")
     st.dataframe(resume, hide_index=True)
-
-    labels = resume["Cód. subprograma"].astype(str)  
+    
+    labels = resume["Cód. subprograma"].astype(str) 
     verificacoes = resume[f"% de verificações finalizadas"].astype(float)
     alteracao = resume[f"% de alteração das verificações finalizadas"].astype(float)
 
@@ -306,11 +308,12 @@ def report_tab3():
         x=labels,
         y=alteracao,
         name="Finalizadas",
-        marker_color='lightblue',
+        marker_color='#008080',
         offsetgroup=1,
     ))
 
     fig.update_layout(
+        height=500,
         title="Gráfico comparativo de Verificações finalizadas e total de alteração por Verificação:",
         yaxis = dict(range = [0, 100]),
         xaxis_title="Subprograma",
@@ -330,23 +333,38 @@ def report_tab3():
         )
     )
 
+
     st.plotly_chart(fig, width="stretch")
 
     st.subheader("Selecione programa, subprograma e solicitação:")
     verif = df["Verificação"].unique().tolist()
     verif.remove("Subtotal")
+    verif.insert(0, "Todos")
     del verif[-1]
-    entrada_prog = st.selectbox("Programa", options=list(programas.keys()), key="prog_tab3")
 
+    entrada_prog = st.selectbox("Programa", options=list(programas.keys()), key="prog_tab3")
     prog = atualiza_id(entrada_prog)
 
     subprogramas = programas[entrada_prog]
     sp = st.selectbox("Suprograma",options=subprogramas, key="sp_tab3")
     subprog = num_sp(sp)
 
-    solicitacao = str(st.selectbox("Solicitacao", options=verif))
-    solicitacao = solicitacao.replace(" ", "%20")
+    if "solicitacao" not in st.session_state:
+        st.session_state.solicitacao = "Todos"
 
+    def limpar():
+        st.session_state.solicitacao = "Todos"
+
+    solicitacao = str(st.selectbox("Solicitacao", options=verif, key="solicitacao"))
+
+    st.button("Limpar filtro", on_click=limpar)
+
+    if solicitacao == "Todos":
+        solicitacao = "null"
+
+
+    solicitacao = solicitacao.replace(" ", "%20")
+    
     url = f"http://10.0.10.22:41112/gw/reports/generate_report_xls/CAED7029-2307:2025/9/ID_FONTE_DADO={prog}&CD_PROGRAMA={subprog}&DC_SOLICITACAO={solicitacao}"
 
     resp = requests.get(url)
@@ -370,7 +388,7 @@ def dashboard():
         st.header("Relatórios de processamento:")
         report_tab1()
 
-        st.header("Relatório Processamento por instrumento:")
+        st.subheader("Relatório Processamento por instrumento:")
         report_tab2()
 
 
@@ -379,15 +397,12 @@ def dashboard():
         report_tab3()
 
 
-# def main():
-#   if st.session_state['logged_in']:
-#       dashboard()
-#   else:
-#       login_page()
+def main():
+  if st.session_state['logged_in']:
+      dashboard()
+  else:
+      login_page()
 
 
-# if __name__ == "__main__":
-#   main()
-
-
-dashboard()
+if __name__ == "__main__":
+  main()
