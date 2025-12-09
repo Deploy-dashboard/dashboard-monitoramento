@@ -38,41 +38,102 @@ def login_page():
             
         st.error("Usuário ou senha incorretos.")
 
-subprogramas = ["Todos", 
-                "2026 - MG BELO HORIZONTE - 3ª AV. SOMATIVA 2025 (SIMULADO)", 
-                "2050 - BR CAEd - PPGP 2025",
-                "2111 - RJ RIO DE JANEIRO (MUNICÍPIO) - 4ª AV. FORMATIVA 2025 (ADR 4)", 
-                "2070 - GO GOIÁS - AV. SOMATIVA EF EM 2025 (SAEGO)",
-                "2073 - MG MINAS GERAIS - AV. SOMATIVA EF EM 2025", 
-                "2075 - CE CEARÁ - AV. SOMATIVA EM 2025 (SPAECE EM)", 
-                "2082 - TO TOCANTINS - 1ª AV. SOMATIVA 2025 (SIMULADO)", 
-                "2085 - MT MATO GROSSO - AV. SOMATIVA 2025 EF EM (AVALIA MT)", 
-                "2087 - MG BELO HORIZONTE - 5ª AV. FORMATIVA 2025 (NOVEMBRO)", 
-                "2091 - PE RECIFE - 3ª AV. FORMATIVA 2025",
-                "2101 - SC FLORIANÓPOLIS - 2ª AV. SOMATIVA 2025", 
-                "2132 - PI PIAUÍ - AV. SOMATIVA 2025 EF EM (SAEPI)",
-                "2104 - BR CAEd - PRÉ-TESTE 2025 - LOTE 04 (BANCO)",
-                "2081 - AL ALAGOAS - AV. SOMATIVA 2025 (SAVEAL)",
-                "2069 - GO GOIÁS - AV. SOMATIVA EF 2025 (SAEGO ALFA)"
-                ]
+# subprogramas = ["Todos", 
+#                 "2026 - MG BELO HORIZONTE - 3ª AV. SOMATIVA 2025 (SIMULADO)", 
+#                 "2050 - BR CAEd - PPGP 2025",
+#                 "2111 - RJ RIO DE JANEIRO (MUNICÍPIO) - 4ª AV. FORMATIVA 2025 (ADR 4)", 
+#                 "2070 - GO GOIÁS - AV. SOMATIVA EF EM 2025 (SAEGO)",
+#                 "2073 - MG MINAS GERAIS - AV. SOMATIVA EF EM 2025", 
+#                 "2075 - CE CEARÁ - AV. SOMATIVA EM 2025 (SPAECE EM)", 
+#                 "2082 - TO TOCANTINS - 1ª AV. SOMATIVA 2025 (SIMULADO)", 
+#                 "2085 - MT MATO GROSSO - AV. SOMATIVA 2025 EF EM (AVALIA MT)", 
+#                 "2087 - MG BELO HORIZONTE - 5ª AV. FORMATIVA 2025 (NOVEMBRO)", 
+#                 "2091 - PE RECIFE - 3ª AV. FORMATIVA 2025",
+#                 "2101 - SC FLORIANÓPOLIS - 2ª AV. SOMATIVA 2025", 
+#                 "2132 - PI PIAUÍ - AV. SOMATIVA 2025 EF EM (SAEPI)",
+#                 "2104 - BR CAEd - PRÉ-TESTE 2025 - LOTE 04 (BANCO)",
+#                 "2081 - AL ALAGOAS - AV. SOMATIVA 2025 (SAVEAL)",
+#                 "2069 - GO GOIÁS - AV. SOMATIVA EF 2025 (SAEGO ALFA)"
+#                 ]
 
-subprogramas = subprogramas[:1] + sorted(subprogramas[1:])
+# subprogramas = subprogramas[:1] + sorted(subprogramas[1:])
 
-programas = {"Todos" : ["Todos"],
-            "207 - PROGRAMA DE AVALIAÇÃO E MONITORAMENTO DE ALAGOAS 2021": ["2081 - AL ALAGOAS - AV. SOMATIVA 2025 (SAVEAL)"],
-            "234 - PROGRAMA DE AVALIAÇÃO E MONITORAMENTO DO MUNICÍPIO DE BELO HORIZONTE" : ["2026 - MG BELO HORIZONTE - 3ª AV. SOMATIVA 2025 (SIMULADO)", "2087 - MG BELO HORIZONTE - 5ª AV. FORMATIVA 2025 (NOVEMBRO)"],
-            "220 - PROGRAMA DE PÓS-GRADUAÇÃO PROFISSIONAL CAEd 2022" : ["2050 - BR CAEd - PPGP 2025"],
-            "130 - AVALIAÇÃO E MONITORAMENTO DA EDUCAÇÃO PÚBLICA DE GOIÁS 2019/2020" : ["2070 - GO GOIÁS - AV. SOMATIVA EF EM 2025 (SAEGO)", "2069 - GO GOIÁS - AV. SOMATIVA EF 2025 (SAEGO ALFA)"],
-            "149 - PROGRAMA DE AVALIAÇÃO E MONITORAMENTO DO CEARÁ 2019" : ["2075 - CE CEARÁ - AV. SOMATIVA EM 2025 (SPAECE EM)"],
-            "194 - PROGRAMA DE AVALIAÇÃO E MONITORAMENTO DO MUNICÍPIO DO RIO DE JANEIRO 2021" : ["2111 - RJ RIO DE JANEIRO (MUNICÍPIO) - 4ª AV. FORMATIVA 2025 (ADR 4)"],
-            "208 - PROGRAMA DE AVALIAÇÃO E MONITORAMENTO DE TOCANTINS 2021" : ["2082 - TO TOCANTINS - 1ª AV. SOMATIVA 2025 (SIMULADO)"],
-            "126 - PROGRAMA DE AVALIAÇÃO E MONITORAMENTO DE MINAS GERAIS 2019" : ["2073 - MG MINAS GERAIS - AV. SOMATIVA EF EM 2025"],
-            "197 - PROGRAMA DE AVALIAÇÃO E MONITORAMENTO DO MATO GROSSO 2021" : ["2085 - MT MATO GROSSO - AV. SOMATIVA 2025 EF EM (AVALIA MT)"],
-            "129 - PROGRAMA DE AVALIAÇÃO E MONITORAMENTO DO PIAUÍ 2019" : ["2132 - PI PIAUÍ - AV. SOMATIVA 2025 EF EM (SAEPI)"],
-            "212 - PROGRAMA DE AVALIAÇÃO E MONITORAMENTO DE RECIFE 2022" : ["2091 - PE RECIFE - 3ª AV. FORMATIVA 2025"],
-            "244 - PROGRAMA DE AVALIAÇÃO E MONITORAMENTO DE FLORIANÓPOLIS" : ["2101 - SC FLORIANÓPOLIS - 2ª AV. SOMATIVA 2025"],
-            "213 - CONSTRUÇÃO E PRÉ-TESTAGEM DOS ITENS" : ["2104 - BR CAEd - PRÉ-TESTE 2025 - LOTE 04 (BANCO)"],
-            }
+# programas = {"Todos" : ["Todos"],
+#             "207 - PROGRAMA DE AVALIAÇÃO E MONITORAMENTO DE ALAGOAS 2021": ["2081 - AL ALAGOAS - AV. SOMATIVA 2025 (SAVEAL)"],
+#             "234 - PROGRAMA DE AVALIAÇÃO E MONITORAMENTO DO MUNICÍPIO DE BELO HORIZONTE" : ["2026 - MG BELO HORIZONTE - 3ª AV. SOMATIVA 2025 (SIMULADO)", "2087 - MG BELO HORIZONTE - 5ª AV. FORMATIVA 2025 (NOVEMBRO)"],
+#             "220 - PROGRAMA DE PÓS-GRADUAÇÃO PROFISSIONAL CAEd 2022" : ["2050 - BR CAEd - PPGP 2025"],
+#             "130 - AVALIAÇÃO E MONITORAMENTO DA EDUCAÇÃO PÚBLICA DE GOIÁS 2019/2020" : ["2070 - GO GOIÁS - AV. SOMATIVA EF EM 2025 (SAEGO)", "2069 - GO GOIÁS - AV. SOMATIVA EF 2025 (SAEGO ALFA)"],
+#             "149 - PROGRAMA DE AVALIAÇÃO E MONITORAMENTO DO CEARÁ 2019" : ["2075 - CE CEARÁ - AV. SOMATIVA EM 2025 (SPAECE EM)"],
+#             "194 - PROGRAMA DE AVALIAÇÃO E MONITORAMENTO DO MUNICÍPIO DO RIO DE JANEIRO 2021" : ["2111 - RJ RIO DE JANEIRO (MUNICÍPIO) - 4ª AV. FORMATIVA 2025 (ADR 4)"],
+#             "208 - PROGRAMA DE AVALIAÇÃO E MONITORAMENTO DE TOCANTINS 2021" : ["2082 - TO TOCANTINS - 1ª AV. SOMATIVA 2025 (SIMULADO)"],
+#             "126 - PROGRAMA DE AVALIAÇÃO E MONITORAMENTO DE MINAS GERAIS 2019" : ["2073 - MG MINAS GERAIS - AV. SOMATIVA EF EM 2025"],
+#             "197 - PROGRAMA DE AVALIAÇÃO E MONITORAMENTO DO MATO GROSSO 2021" : ["2085 - MT MATO GROSSO - AV. SOMATIVA 2025 EF EM (AVALIA MT)"],
+#             "129 - PROGRAMA DE AVALIAÇÃO E MONITORAMENTO DO PIAUÍ 2019" : ["2132 - PI PIAUÍ - AV. SOMATIVA 2025 EF EM (SAEPI)"],
+#             "212 - PROGRAMA DE AVALIAÇÃO E MONITORAMENTO DE RECIFE 2022" : ["2091 - PE RECIFE - 3ª AV. FORMATIVA 2025"],
+#             "244 - PROGRAMA DE AVALIAÇÃO E MONITORAMENTO DE FLORIANÓPOLIS" : ["2101 - SC FLORIANÓPOLIS - 2ª AV. SOMATIVA 2025"],
+#             "213 - CONSTRUÇÃO E PRÉ-TESTAGEM DOS ITENS" : ["2104 - BR CAEd - PRÉ-TESTE 2025 - LOTE 04 (BANCO)"],
+#             }
+
+# def num_sp(sp):
+#     if sp != "Todos":
+#         return int(sp[0:4])
+#     return "null"
+
+# def atualiza_id(prog):
+#     if prog == "Todos":
+#         return "null"
+#     id = int(prog[0:3])
+#     if id == 234:
+#         return 250
+#     elif id == 220:
+#         return 232
+#     elif id == 130:
+#         return 124
+#     elif id == 149:
+#         return 143
+#     elif id == 194:
+#         return 198
+#     elif id == 208:
+#         return 212
+#     elif id == 197:
+#         return 201
+#     elif id == 129:
+#         return 123
+#     elif id == 244:
+#         id = 260
+#     return 217
+
+
+res_prog = requests.get(f'http://10.0.10.22:41112/gw/reports/documentos/filter/CAED7029-2307:2025/null/null')
+data_prog = res_prog.json()
+dados_prog = data_prog[0]["dados"]
+programas = {item["key"]: item["value"] for item in dados_prog}
+programas["Todos"] = "Todos"
+
+id_prog = programas.keys()
+sp = {}
+for key in id_prog:
+    if key != "Todos":
+        res_sp = requests.get(f'http://10.0.10.22:41112/gw/reports/documentos/filterssrs/CAED7029-2307:2025/58/{key}/ID_FONTE_DADO={key}&CD_PROGRAMA=undefined&DC_SOLICITACAO=undefined')
+        data_sp = res_sp.json()
+        sp[key] = data_sp[0]["dados"]
+
+subprogramas = {
+    k: [item["value"] for item in v]
+    for k, v in sp.items()
+}
+
+
+lista_aux = []
+lista_sp = []
+for valor in subprogramas.values():
+    lista_aux.append(valor)
+for sublista in lista_aux:
+    for item in sublista:
+        lista_sp.append(item)
+
+lista_sp.insert(0, "Todos")
+lista_sp = lista_sp[:1] + sorted(lista_sp[1:]) 
 
 def num_sp(sp):
     if sp != "Todos":
@@ -82,32 +143,14 @@ def num_sp(sp):
 def atualiza_id(prog):
     if prog == "Todos":
         return "null"
-    id = int(prog[0:3])
-    if id == 234:
-        return 250
-    elif id == 220:
-        return 232
-    elif id == 130:
-        return 124
-    elif id == 149:
-        return 143
-    elif id == 194:
-        return 198
-    elif id == 208:
-        return 212
-    elif id == 197:
-        return 201
-    elif id == 129:
-        return 123
-    elif id == 244:
-        id = 260
-    return 217
-
-
+    else:
+        for chave, valor in programas.items():
+            if valor == prog:
+                return chave  
 
 def report_tab1():
     
-    select_sp = st.selectbox("Suprograma",options=subprogramas, key="sp_tab1")
+    select_sp = st.selectbox("Suprograma",options=lista_sp, key="sp_tab1")
     sp = num_sp(select_sp)
     url = f'http://10.0.10.22:41112/gw/reports/generate_report_xls/CAED7027-1707:2025/9/ID_FONTE_DADO="null"&CD_PROGRAMA={sp}'
     response = requests.get(url)
@@ -115,9 +158,9 @@ def report_tab1():
 
     excel = BytesIO(response.content)
     df = pd.DataFrame(pd.read_excel(excel))
-    df.insert(loc=3, column="% de registros digitalizados", value=((df["Total de registros digitalizados"] / df["Total de registros previstos"])*100).round(2))
+    df.insert(loc=3, column="% de registros digitalizados", value=((pd.to_numeric(df["Total de registros digitalizados"]) / pd.to_numeric(df["Total de registros previstos"]))*100).round(2))
 
-    mapa_sub = { s.split(" - ")[0]: " - ".join(s.split(" - ")[1:]) for s in subprogramas if s != "Todos"}
+    mapa_sub = { s.split(" - ")[0]: " - ".join(s.split(" - ")[1:]) for s in lista_sp if s != "Todos"}
     df.insert(1, "Nome subprograma", df["Cód. subprograma"].astype(str).map(mapa_sub))
 
     st.markdown("**Tabela:**")
@@ -182,7 +225,7 @@ def report_tab2():
     instrumentos = sorted(instrumentos)
     instrumentos.insert(0, "Todos")
 
-    select_sp = st.selectbox("Suprograma",options=subprogramas, key="sp_tab2")
+    select_sp = st.selectbox("Suprograma",options=lista_sp, key="sp_tab2")
     sp = num_sp(select_sp)
     
     inst = st.selectbox("Instrumento", options=instrumentos)
@@ -278,8 +321,8 @@ def report_tab2():
 
 def report_tab3():
     
-    global subprogramas
-    subprog = st.selectbox("Suprograma",options=subprogramas, key="subprog_tab3")
+    global programas, subprogramas
+    subprog = st.selectbox("Suprograma",options=lista_sp, key="subprog_tab3")
     ns = num_sp(subprog)
     sol = f"http://10.0.10.22:41112/gw/reports/generate_report_xls/CAED7029-2307:2025/9/ID_FONTE_DADO=null&CD_PROGRAMA={ns}&DC_SOLICITACAO=null"
     response = requests.get(sol)
@@ -287,7 +330,7 @@ def report_tab3():
     df = pd.DataFrame(pd.read_excel(content))
     resume = df.loc[df["Verificação"] == ("Subtotal")]
 
-    mapa_sub = { s.split(" - ")[0]: " - ".join(s.split(" - ")[1:]) for s in subprogramas if s != "Todos"}
+    mapa_sub = { s.split(" - ")[0]: " - ".join(s.split(" - ")[1:]) for s in lista_sp if s != "Todos"}
     resume.insert(1, "Nome subprograma", resume["Cód. subprograma"].astype(str).map(mapa_sub))
 
     st.markdown("**Verificações finalizadas por programa:**")
@@ -345,11 +388,13 @@ def report_tab3():
     verif.insert(0, "Todos")
     del verif[-1]
 
-    entrada_prog = st.selectbox("Programa", options=list(programas.keys()), key="prog_tab3")
+    entrada_prog = st.selectbox("Programa", options=list(sorted(programas.values())), key="prog_tab3")
     prog = atualiza_id(entrada_prog)
-
-    subprogramas = programas[entrada_prog]
-    sp = st.selectbox("Suprograma",options=subprogramas, key="sp_tab3")
+    if prog != "null":
+        opcoes_subprogramas = subprogramas[prog]
+        sp = st.selectbox("Suprograma",options=opcoes_subprogramas, key="sp_tab3")
+    else:
+        sp = str("Todos")
     subprog = num_sp(sp)
 
     if "solicitacao" not in st.session_state:
@@ -409,3 +454,4 @@ def main():
 
 if __name__ == "__main__":
   main()
+
