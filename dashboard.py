@@ -10,6 +10,7 @@ if 'logged_in' not in st.session_state:
 
 
 def login_page():
+
     st.markdown(
     """
     <div style="
@@ -37,72 +38,6 @@ def login_page():
             st.rerun()  
             
         st.error("Usuário ou senha incorretos.")
-
-# subprogramas = ["Todos", 
-#                 "2026 - MG BELO HORIZONTE - 3ª AV. SOMATIVA 2025 (SIMULADO)", 
-#                 "2050 - BR CAEd - PPGP 2025",
-#                 "2111 - RJ RIO DE JANEIRO (MUNICÍPIO) - 4ª AV. FORMATIVA 2025 (ADR 4)", 
-#                 "2070 - GO GOIÁS - AV. SOMATIVA EF EM 2025 (SAEGO)",
-#                 "2073 - MG MINAS GERAIS - AV. SOMATIVA EF EM 2025", 
-#                 "2075 - CE CEARÁ - AV. SOMATIVA EM 2025 (SPAECE EM)", 
-#                 "2082 - TO TOCANTINS - 1ª AV. SOMATIVA 2025 (SIMULADO)", 
-#                 "2085 - MT MATO GROSSO - AV. SOMATIVA 2025 EF EM (AVALIA MT)", 
-#                 "2087 - MG BELO HORIZONTE - 5ª AV. FORMATIVA 2025 (NOVEMBRO)", 
-#                 "2091 - PE RECIFE - 3ª AV. FORMATIVA 2025",
-#                 "2101 - SC FLORIANÓPOLIS - 2ª AV. SOMATIVA 2025", 
-#                 "2132 - PI PIAUÍ - AV. SOMATIVA 2025 EF EM (SAEPI)",
-#                 "2104 - BR CAEd - PRÉ-TESTE 2025 - LOTE 04 (BANCO)",
-#                 "2081 - AL ALAGOAS - AV. SOMATIVA 2025 (SAVEAL)",
-#                 "2069 - GO GOIÁS - AV. SOMATIVA EF 2025 (SAEGO ALFA)"
-#                 ]
-
-# subprogramas = subprogramas[:1] + sorted(subprogramas[1:])
-
-# programas = {"Todos" : ["Todos"],
-#             "207 - PROGRAMA DE AVALIAÇÃO E MONITORAMENTO DE ALAGOAS 2021": ["2081 - AL ALAGOAS - AV. SOMATIVA 2025 (SAVEAL)"],
-#             "234 - PROGRAMA DE AVALIAÇÃO E MONITORAMENTO DO MUNICÍPIO DE BELO HORIZONTE" : ["2026 - MG BELO HORIZONTE - 3ª AV. SOMATIVA 2025 (SIMULADO)", "2087 - MG BELO HORIZONTE - 5ª AV. FORMATIVA 2025 (NOVEMBRO)"],
-#             "220 - PROGRAMA DE PÓS-GRADUAÇÃO PROFISSIONAL CAEd 2022" : ["2050 - BR CAEd - PPGP 2025"],
-#             "130 - AVALIAÇÃO E MONITORAMENTO DA EDUCAÇÃO PÚBLICA DE GOIÁS 2019/2020" : ["2070 - GO GOIÁS - AV. SOMATIVA EF EM 2025 (SAEGO)", "2069 - GO GOIÁS - AV. SOMATIVA EF 2025 (SAEGO ALFA)"],
-#             "149 - PROGRAMA DE AVALIAÇÃO E MONITORAMENTO DO CEARÁ 2019" : ["2075 - CE CEARÁ - AV. SOMATIVA EM 2025 (SPAECE EM)"],
-#             "194 - PROGRAMA DE AVALIAÇÃO E MONITORAMENTO DO MUNICÍPIO DO RIO DE JANEIRO 2021" : ["2111 - RJ RIO DE JANEIRO (MUNICÍPIO) - 4ª AV. FORMATIVA 2025 (ADR 4)"],
-#             "208 - PROGRAMA DE AVALIAÇÃO E MONITORAMENTO DE TOCANTINS 2021" : ["2082 - TO TOCANTINS - 1ª AV. SOMATIVA 2025 (SIMULADO)"],
-#             "126 - PROGRAMA DE AVALIAÇÃO E MONITORAMENTO DE MINAS GERAIS 2019" : ["2073 - MG MINAS GERAIS - AV. SOMATIVA EF EM 2025"],
-#             "197 - PROGRAMA DE AVALIAÇÃO E MONITORAMENTO DO MATO GROSSO 2021" : ["2085 - MT MATO GROSSO - AV. SOMATIVA 2025 EF EM (AVALIA MT)"],
-#             "129 - PROGRAMA DE AVALIAÇÃO E MONITORAMENTO DO PIAUÍ 2019" : ["2132 - PI PIAUÍ - AV. SOMATIVA 2025 EF EM (SAEPI)"],
-#             "212 - PROGRAMA DE AVALIAÇÃO E MONITORAMENTO DE RECIFE 2022" : ["2091 - PE RECIFE - 3ª AV. FORMATIVA 2025"],
-#             "244 - PROGRAMA DE AVALIAÇÃO E MONITORAMENTO DE FLORIANÓPOLIS" : ["2101 - SC FLORIANÓPOLIS - 2ª AV. SOMATIVA 2025"],
-#             "213 - CONSTRUÇÃO E PRÉ-TESTAGEM DOS ITENS" : ["2104 - BR CAEd - PRÉ-TESTE 2025 - LOTE 04 (BANCO)"],
-#             }
-
-# def num_sp(sp):
-#     if sp != "Todos":
-#         return int(sp[0:4])
-#     return "null"
-
-# def atualiza_id(prog):
-#     if prog == "Todos":
-#         return "null"
-#     id = int(prog[0:3])
-#     if id == 234:
-#         return 250
-#     elif id == 220:
-#         return 232
-#     elif id == 130:
-#         return 124
-#     elif id == 149:
-#         return 143
-#     elif id == 194:
-#         return 198
-#     elif id == 208:
-#         return 212
-#     elif id == 197:
-#         return 201
-#     elif id == 129:
-#         return 123
-#     elif id == 244:
-#         id = 260
-#     return 217
-
 
 res_prog = requests.get(f'http://10.0.10.22:41112/gw/reports/documentos/filter/CAED7029-2307:2025/null/null')
 data_prog = res_prog.json()
