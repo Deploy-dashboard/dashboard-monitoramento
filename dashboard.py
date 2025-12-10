@@ -102,29 +102,76 @@ def report_tab1():
     st.dataframe(df, hide_index=True)
     
     if sp == "null":
-        labels = df["Cód. subprograma"].astype(str)  
-        decodificados = df["% de registros processados"]
-        digitalizados = df["% de registros digitalizados"]
+
+        def get_color(v):
+            if v <= 30:
+                return 'red'
+            elif v <= 50:
+                return 'orange'
+            elif v <= 70:
+                return 'yellow'
+            else:
+                return 'green'
+            
+
+        labels1 = df["Cód. subprograma"].astype(str)+" - "+df["Nome subprograma"]  
+        processados1 = df["% de registros processados"]
+        colors = [get_color(v) for v in processados1]
 
         fig = go.Figure()
 
         fig.add_trace(go.Bar(
-            x=labels,
-            y=decodificados,
+            x=processados1,   
+            y=labels1,        
+            name="Processados",
+            marker_color=colors,
+            orientation='h',  
+            offsetgroup=1
+        ))
+
+        fig.update_layout(
+            height=800,
+            title="Registros processados por subprograma:",
+            xaxis_title="Registros processados (%)",   
+            yaxis_title="Subprograma",
+            barmode='group',
+            xaxis_tickangle=0,
+            bargap=0.15,
+            bargroupgap=0.05,
+            template="plotly_white",
+            legend=dict(
+                title='',
+                orientation='h',
+                yanchor='bottom',
+                y=1.05,
+                xanchor='right',
+                x=1,
+            )
+        )
+
+        st.plotly_chart(fig, width="stretch")
+
+        labels2 = df["Cód. subprograma"].astype(str)  
+        decodificados2 = df["% de registros processados"]
+        digitalizados2 = df["% de registros digitalizados"]
+
+        fig = go.Figure()
+
+        fig.add_trace(go.Bar(
+            x=labels2,
+            y=decodificados2,
             name="Decodificados",
             marker_color='#4169E1',
             offsetgroup=1
         ))
 
         fig.add_trace(go.Bar(
-            x=labels,
-            y=digitalizados,
+            x=labels2,
+            y=digitalizados2,
             name="Digitalizados",
             marker_color="#008080",
             offsetgroup=2
         ))
-
-
 
         fig.update_layout(
             title="Comparativo de registros digitalizados e processados: ",
@@ -380,13 +427,14 @@ def dashboard():
         report_tab3()
 
 
-def main():
-  if st.session_state['logged_in']:
-      dashboard()
-  else:
-      login_page()
+# def main():
+#   if st.session_state['logged_in']:
+#       dashboard()
+#   else:
+#       login_page()
 
 
-if __name__ == "__main__":
-  main()
+# if __name__ == "__main__":
+#   main()
 
+dashboard()
