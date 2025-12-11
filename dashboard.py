@@ -222,6 +222,9 @@ def report_tab2():
     table["Total de registros digitalizados"] = pd.to_numeric(table["Total de registros digitalizados"], errors="coerce")
     table["Total de registros previstos"] = pd.to_numeric(table["Total de registros previstos"], errors="coerce")
     table["% de registros digitalizados"] = ((table["Total de registros digitalizados"] / table["Total de registros previstos"]) * 100).round(2)
+    
+    mapa_sub = { s.split(" - ")[0]: " - ".join(s.split(" - ")[1:]) for s in lista_sp if s != "Todos"}
+    table.insert(1, "Nome subprograma", table["Cód. subprograma"].astype(str).map(mapa_sub))
 
     st.markdown("**Tabela:**")
     st.dataframe(table, hide_index=True)
@@ -402,6 +405,9 @@ def report_tab3():
     table = pd.DataFrame(pd.read_excel(excel))
     table = table[table["Verificação"] != "Subtotal"]
     table = table[table["Cód. subprograma"] != "Total"]
+    mapa_sub = { s.split(" - ")[0]: " - ".join(s.split(" - ")[1:]) for s in lista_sp if s != "Todos"}
+    table.insert(1, "Nome subprograma", table["Cód. subprograma"].astype(str).map(mapa_sub))
+
     st.markdown("**Tabela:**")
     st.dataframe(table, hide_index=True)
 
