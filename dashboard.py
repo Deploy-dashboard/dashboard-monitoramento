@@ -427,14 +427,12 @@ def dashboard():
         report_tab3()
 
 
-# def main():
-#   if st.session_state['logged_in']:
-#       dashboard()
-#   else:
-#       login_page()
+def main():
+  if st.session_state['logged_in']:
+      dashboard()
+  else:
+      login_page()
 
 
-# if __name__ == "__main__":
-#   main()
-
-dashboard()
+if __name__ == "__main__":
+  main()
