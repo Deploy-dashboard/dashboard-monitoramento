@@ -5,9 +5,6 @@ import pandas as pd
 import requests
 import plotly.graph_objects as go
 
-if 'logged_in' not in st.session_state:
-    st.session_state['logged_in'] = False
-
 
 def login_page():
 
@@ -434,6 +431,10 @@ def dashboard():
 
 
 def main():
+  
+  if 'logged_in' not in st.session_state:
+    st.session_state['logged_in'] = False
+
   if st.session_state['logged_in']:
       dashboard()
   else:
