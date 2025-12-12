@@ -1,5 +1,9 @@
-import subprocess, os
+import subprocess
+import os
 
-BASE_DIR = os.path.dirname(__file__)
+BASE_DIR = os.path.dirname(__file__)  # pasta onde o script atual está
 p = os.path.join(BASE_DIR, "dashboard.py")
-subprocess.Popen(["python - m", "-m streamlit run", p])
+
+cmd = f'python -m streamlit run "{p}"'
+
+subprocess.Popen(cmd)
