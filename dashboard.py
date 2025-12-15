@@ -96,7 +96,14 @@ def report_tab1():
     df.insert(1, "Nome subprograma", df["Cód. subprograma"].astype(str).map(mapa_sub))
 
     st.markdown("**Tabela:**")
-    st.dataframe(df, hide_index=True)
+    column_config = {
+    col: st.column_config.NumberColumn(
+        col,
+        format="localized"
+    )
+    for col in df.columns[2:]
+}
+    st.dataframe(df, hide_index=True, column_config=column_config)
     
     if sp == "null":
 
@@ -224,7 +231,14 @@ def report_tab2():
     table.insert(1, "Nome subprograma", table["Cód. subprograma"].astype(str).map(mapa_sub))
 
     st.markdown("**Tabela:**")
-    st.dataframe(table, hide_index=True)
+    column_config = {
+    col: st.column_config.NumberColumn(
+        col,
+        format="localized"
+    )
+    for col in table.columns[4:]
+    }
+    st.dataframe(table, hide_index=True, column_config=column_config)
 
     if (inst != "null") and (sp == "null"):
         labels = table["Cód. subprograma"].astype(str)
@@ -316,7 +330,14 @@ def report_tab3():
     resume.insert(1, "Nome subprograma", resume["Cód. subprograma"].astype(str).map(mapa_sub))
 
     st.markdown("**Verificações finalizadas por programa:**")
-    st.dataframe(resume, hide_index=True)
+    column_config = {
+    col: st.column_config.NumberColumn(
+        col,
+        format="localized"
+    )
+    for col in resume.columns[3:]
+    }
+    st.dataframe(resume, hide_index=True, column_config=column_config)
     
     labels = resume["Cód. subprograma"].astype(str) 
     verificacoes = resume[f"% de verificações finalizadas"].astype(float)
@@ -405,8 +426,14 @@ def report_tab3():
     mapa_sub = { s.split(" - ")[0]: " - ".join(s.split(" - ")[1:]) for s in lista_sp if s != "Todos"}
     table.insert(1, "Nome subprograma", table["Cód. subprograma"].astype(str).map(mapa_sub))
 
-    st.markdown("**Tabela:**")
-    st.dataframe(table, hide_index=True)
+    column_config = {
+    col: st.column_config.NumberColumn(
+        col,
+        format="localized"
+    )
+    for col in table.columns[3:]
+    }
+    st.dataframe(table, hide_index=True, column_config=column_config)
 
     
 
