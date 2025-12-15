@@ -320,10 +320,13 @@ def report_tab3():
     global programas, subprogramas
     subprog = st.selectbox("Suprograma",options=lista_sp, key="subprog_tab3")
     ns = num_sp(subprog)
-    sol = f"http://10.0.10.22:41112/gw/reports/generate_report_xls/CAED7029-2307:2025/9/ID_FONTE_DADO=null&CD_PROGRAMA={ns}&DC_SOLICITACAO=null"
-    response = requests.get(sol)
-    content = BytesIO(response.content)
-    df = pd.DataFrame(pd.read_excel(content))
+    def sol(prog, subprog, solicit):
+        s = f"http://10.0.10.22:41112/gw/reports/generate_report_xls/CAED7029-2307:2025/9/ID_FONTE_DADO={prog}&CD_PROGRAMA={subprog}&DC_SOLICITACAO={solicit}"
+        response = requests.get(s)
+        content = BytesIO(response.content)
+        df = pd.DataFrame(pd.read_excel(content))
+        return df
+    df  = sol("null", ns, "null")
     resume = df.loc[df["Verificação"] == ("Subtotal")]
 
     mapa_sub = { s.split(" - ")[0]: " - ".join(s.split(" - ")[1:]) for s in lista_sp if s != "Todos"}
@@ -386,8 +389,10 @@ def report_tab3():
     st.plotly_chart(fig, width="stretch")
 
     st.subheader("Selecione programa, subprograma e solicitação:")
-    verif = df["Verificação"].unique().tolist()
-    verif.remove("Subtotal")
+    df1 = sol("nul", "null", "null")
+    verif = df1["Verificação"].unique().tolist()
+    if "Subtotal" in verif:
+        verif.remove("Subtotal")
     verif.insert(0, "Todos")
     del verif[-1]
 
