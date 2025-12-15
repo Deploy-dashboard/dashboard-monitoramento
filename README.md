@@ -7,5 +7,5 @@ pip install -r requirements.txt
 ```
 Após as dependências serem instaladas, para rodar o aplicativo, abra o terminal e digite:
 ```
-python -m streamlit run dashboard.py
+python main.py
 ```
