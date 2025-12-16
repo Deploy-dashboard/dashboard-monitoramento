@@ -222,7 +222,6 @@ def report_tab2():
     response1 = requests.get(url_instrumento)
     ex = BytesIO(response1.content)
     table = pd.DataFrame(pd.read_excel(ex))
-    table = table.drop_duplicates(subset=['Cód. subprograma', 'Instrumento'])
     table["Total de registros digitalizados"] = pd.to_numeric(table["Total de registros digitalizados"], errors="coerce")
     table["Total de registros previstos"] = pd.to_numeric(table["Total de registros previstos"], errors="coerce")
     table["% de registros digitalizados"] = ((table["Total de registros digitalizados"] / table["Total de registros previstos"]) * 100).round(2)
@@ -240,69 +239,70 @@ def report_tab2():
     }
     st.dataframe(table, hide_index=True, column_config=column_config)
 
-    if (inst != "null") and (sp == "null"):
-        labels = table["Cód. subprograma"].astype(str)
-        processados = table["% de registros processados"]
-        
-        barras = go.Figure()
+    if len(table["Cód. subprograma"].unique()) > 1:
+        if (inst != "null") and (sp == "null"):
+            labels = table["Cód. subprograma"].astype(str).drop_duplicates()
+            processados = table["% de registros processados"]
+            
+            barras = go.Figure()
 
-        barras.add_trace(go.Bar(
-            x=labels,
-            y=processados,
-            name="Decodificados",
-            marker_color='#4169E1',
-            offsetgroup=0
-        ))
+            barras.add_trace(go.Bar(
+                x=labels,
+                y=processados,
+                name="Decodificados",
+                marker_color='#4169E1',
+                offsetgroup=0
+            ))
 
 
-        barras.update_layout(
-            title="Comparativo de Registros processados: ",
-            xaxis_title="Código do Subprograma",
-            yaxis_title="Registros processados (%)",
-            barmode='group',
-            xaxis_tickangle=0,
-            bargap=0.15,      
-            bargroupgap=0.05, 
-            template="plotly_white",
-        )
+            barras.update_layout(
+                title="Comparativo de Registros processados: ",
+                xaxis_title="Código do Subprograma",
+                yaxis_title="Registros processados (%)",
+                barmode='group',
+                xaxis_tickangle=0,
+                bargap=0.15,      
+                bargroupgap=0.05, 
+                template="plotly_white",
+            )
 
-        st.plotly_chart(barras)
+            st.plotly_chart(barras)
 
-    elif (inst == "null") and (sp != "null"):
-        labels = table["Instrumento"].astype(str)
-        processados = table["% de registros processados"]
-        digitalizados = table["% de registros digitalizados"]
-        
-        barras = go.Figure()
+        elif (inst == "null") and (sp != "null"):
+            labels = table["Instrumento"].astype(str)
+            processados = table["% de registros processados"]
+            digitalizados = table["% de registros digitalizados"]
+            
+            barras = go.Figure()
 
-        barras.add_trace(go.Bar(
-            x=labels,
-            y=processados,
-            name="processados",
-            marker_color='#4169E1',
-            offsetgroup=0
-        ))
+            barras.add_trace(go.Bar(
+                x=labels,
+                y=processados,
+                name="processados",
+                marker_color='#4169E1',
+                offsetgroup=0
+            ))
 
-        barras.add_trace(go.Bar(
-            x=labels,
-            y=digitalizados,
-            name="Certificados",
-            marker_color='lightblue',
-            offsetgroup=1
-        ))
+            barras.add_trace(go.Bar(
+                x=labels,
+                y=digitalizados,
+                name="Certificados",
+                marker_color='lightblue',
+                offsetgroup=1
+            ))
 
-        barras.update_layout(
-            title=f"Comparativo de Instrumentos no programa {sp}: ",
-            xaxis_title="Instrumento",
-            yaxis_title="Registros processados (%)",
-            barmode='group',
-            xaxis_tickangle=-15,
-            bargap=0.15,      
-            bargroupgap=0.05, 
-            template="plotly_white",
-        )
+            barras.update_layout(
+                title=f"Comparativo de Instrumentos no programa {sp}: ",
+                xaxis_title="Instrumento",
+                yaxis_title="Registros processados (%)",
+                barmode='group',
+                xaxis_tickangle=-15,
+                bargap=0.15,      
+                bargroupgap=0.05, 
+                template="plotly_white",
+            )
 
-        st.plotly_chart(barras)
+            st.plotly_chart(barras)
         
     
 
@@ -320,12 +320,14 @@ def report_tab3():
     global programas, subprogramas
     subprog = st.selectbox("Suprograma",options=lista_sp, key="subprog_tab3")
     ns = num_sp(subprog)
+
     def sol(prog, subprog, solicit):
         s = f"http://10.0.10.22:41112/gw/reports/generate_report_xls/CAED7029-2307:2025/9/ID_FONTE_DADO={prog}&CD_PROGRAMA={subprog}&DC_SOLICITACAO={solicit}"
         response = requests.get(s)
         content = BytesIO(response.content)
         df = pd.DataFrame(pd.read_excel(content))
         return df
+    
     df  = sol("null", ns, "null")
     resume = df.loc[df["Verificação"] == ("Subtotal")]
 
