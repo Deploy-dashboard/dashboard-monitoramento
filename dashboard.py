@@ -5,36 +5,25 @@ import pandas as pd
 import requests
 import plotly.graph_objects as go
 
+st.set_page_config(page_title="Dashboard", layout="wide", page_icon="images\icon.png")
 
 def login_page():
+  
+    col1, col2, col3 = st.columns([1, 1.2, 1])
 
-    st.markdown(
-    """
-    <div style="
-        margin: 0 auto;
-        margin-top: 70px;
-        width: 380px;
-        padding: 30px;
-        border-radius: 12px;   
-        text-align: center;
-    ">
-    """,
-    unsafe_allow_html=True
-    )
-    st.markdown("### Repositório CPD")
-    client = Client()
-    st.set_page_config(page_title="Login", layout="centered", page_icon="images\\icon.png")
-    st.markdown("Entre com o nome de usuário e senha:")
+    with col2:
+        st.markdown("## Repositório CPD")
+        st.markdown("Entre com o nome de usuário e senha:")
 
-    username = st.text_input("Usuário")
-    password = st.text_input("Senha", type="password")
-    
-    if st.button("Entrar"):
-        if client.login(username, password):
-            st.session_state['logged_in'] = True
-            st.rerun()  
-            
-        st.error("Usuário ou senha incorretos.")
+        username = st.text_input("Usuário")
+        password = st.text_input("Senha", type="password")
+
+        if st.button("Entrar", use_container_width=True):
+            client = Client()
+            if client.login(username, password):
+                st.session_state.authenticated = True
+            else:
+                st.error("Usuário ou senha incorretos.")
 
 res_prog = requests.get(f'http://10.0.10.22:41112/gw/reports/documentos/filter/CAED7029-2307:2025/null/null')
 data_prog = res_prog.json()
@@ -54,7 +43,6 @@ subprogramas = {
     k: [item["value"] for item in v]
     for k, v in sp.items()
 }
-
 
 lista_aux = []
 lista_sp = []
@@ -314,7 +302,6 @@ def report_tab2():
 
     st.plotly_chart(pizza, width="stretch") 
 
-
 def report_tab3():
     
     global programas, subprogramas
@@ -353,7 +340,7 @@ def report_tab3():
     fig.add_trace(go.Bar(
         x=labels,
         y=verificacoes,
-        name="Total de verificações",
+        name="Verificações finalizadas",
         marker_color='#4169E1',
         offsetgroup=0,
     ))
@@ -361,7 +348,7 @@ def report_tab3():
     fig.add_trace(go.Bar(
         x=labels,
         y=alteracao,
-        name="Finalizadas",
+        name="Alterações finalizadas",
         marker_color='#008080',
         offsetgroup=1,
     ))
@@ -441,13 +428,10 @@ def report_tab3():
     for col in table.columns[3:]
     }
     st.dataframe(table, hide_index=True, column_config=column_config)
-
-    
-
+   
 def dashboard():
     
     st.title("Dashboards")
-    st.set_page_config(page_title="Dashboard", layout="wide", page_icon="images\icon.png")
     
     tab1, tab2 = st.tabs(["processamento / instrumento", "verificação"])
 
@@ -463,16 +447,16 @@ def dashboard():
         st.header("Relatório Verificação - Subprograma / Solicitação ")
         report_tab3()
 
-
 def main():
   
-  if 'logged_in' not in st.session_state:
-    st.session_state['logged_in'] = False
+  if 'authenticated' not in st.session_state:
+    st.session_state.authenticated = False
 
-  if st.session_state['logged_in']:
-      dashboard()
+  if not st.session_state.authenticated:
+    login_page()
+    st.stop()  
   else:
-      login_page()
+    dashboard()
 
 
 if __name__ == "__main__":
