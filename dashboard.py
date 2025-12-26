@@ -22,6 +22,7 @@ def login_page():
             client = Client()
             if client.login(username, password):
                 st.session_state.authenticated = True
+                st.rerun()
             else:
                 st.error("Usuário ou senha incorretos.")
 
