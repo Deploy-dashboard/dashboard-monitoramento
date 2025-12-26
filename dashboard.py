@@ -5,7 +5,7 @@ import pandas as pd
 import requests
 import plotly.graph_objects as go
 
-st.set_page_config(page_title="Dashboard", layout="wide", page_icon="images\icon.png")
+st.set_page_config(page_title="Dashboard", layout="wide", page_icon="images\\icon.png")
 
 def login_page():
   
