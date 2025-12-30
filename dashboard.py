@@ -2,7 +2,7 @@ from io import BytesIO
 from client import Client
 import streamlit as st
 import pandas as pd
-import requests
+import requests, json
 import plotly.graph_objects as go
 
 st.set_page_config(page_title="Dashboard", layout="wide", page_icon="images\\icon.png")
@@ -106,7 +106,48 @@ def report_tab1():
             else:
                 return 'green'
             
+###################################################
 
+        # datas = pd.DataFrame(pd.read_csv("datas.csv"))
+        # labels1 = datas["subprograma"]
+        # processados1 = df["% de registros processados"]
+        # colors = [get_color(v) for v in processados1]
+
+        # fig = go.Figure()
+
+        # fig.add_trace(go.Bar(
+        #     x=processados1,   
+        #     y=labels1,        
+        #     name="Processados",
+        #     marker_color=colors,
+        #     orientation='h',  
+        #     offsetgroup=1
+        # ))
+
+        # fig.update_layout(
+        #     height=800,
+        #     title="Registros processados por subprograma:",
+        #     xaxis_title="Registros processados (%)",   
+        #     yaxis_title="Subprograma",
+        #     barmode='group',
+        #     xaxis_tickangle=0,
+        #     bargap=0.15,
+        #     bargroupgap=0.05,
+        #     template="plotly_white",
+        #     legend=dict(
+        #         title='',
+        #         orientation='h',
+        #         yanchor='bottom',
+        #         y=1.05,
+        #         xanchor='right',
+        #         x=1,
+        #     )
+        # )
+
+        # st.plotly_chart(fig, width="stretch")
+
+###################################################
+        
         labels1 = df["Cód. subprograma"].astype(str)+" - "+df["Nome subprograma"]  
         processados1 = df["% de registros processados"]
         colors = [get_color(v) for v in processados1]
@@ -228,81 +269,74 @@ def report_tab2():
     }
     st.dataframe(table, hide_index=True, column_config=column_config)
 
-    if len(table["Cód. subprograma"].unique()) > 1:
-        if (inst != "null") and (sp == "null"):
-            labels = table["Cód. subprograma"].astype(str).drop_duplicates()
-            processados = table["% de registros processados"]
-            
-            barras = go.Figure()
 
-            barras.add_trace(go.Bar(
-                x=labels,
-                y=processados,
-                name="Decodificados",
-                marker_color='#4169E1',
-                offsetgroup=0
-            ))
-
-
-            barras.update_layout(
-                title="Comparativo de Registros processados: ",
-                xaxis_title="Código do Subprograma",
-                yaxis_title="Registros processados (%)",
-                barmode='group',
-                xaxis_tickangle=0,
-                bargap=0.15,      
-                bargroupgap=0.05, 
-                template="plotly_white",
-            )
-
-            st.plotly_chart(barras)
-
-        elif (inst == "null") and (sp != "null"):
-            labels = table["Instrumento"].astype(str)
-            processados = table["% de registros processados"]
-            digitalizados = table["% de registros digitalizados"]
-            
-            barras = go.Figure()
-
-            barras.add_trace(go.Bar(
-                x=labels,
-                y=processados,
-                name="processados",
-                marker_color='#4169E1',
-                offsetgroup=0
-            ))
-
-            barras.add_trace(go.Bar(
-                x=labels,
-                y=digitalizados,
-                name="Certificados",
-                marker_color='lightblue',
-                offsetgroup=1
-            ))
-
-            barras.update_layout(
-                title=f"Comparativo de Instrumentos no programa {sp}: ",
-                xaxis_title="Instrumento",
-                yaxis_title="Registros processados (%)",
-                barmode='group',
-                xaxis_tickangle=-15,
-                bargap=0.15,      
-                bargroupgap=0.05, 
-                template="plotly_white",
-            )
-
-            st.plotly_chart(barras)
+    if (inst != "null") and (sp == "null") and (len(table["Cód. subprograma"].unique()) > 1):
+        labels = table["Cód. subprograma"].astype(str).drop_duplicates()
+        processados = table["% de registros processados"]
         
-    
+        barras = go.Figure()
 
-    pizza = go.Figure(data=[go.Pie(labels=df["Instrumento"], values=df["Total de registros previstos"])])
+        barras.add_trace(go.Bar(
+            x=labels,
+            y=processados,
+            name="Decodificados",
+            marker_color='#4169E1',
+            offsetgroup=0
+        ))
 
 
-    pizza.update_traces(textposition='inside', textinfo='percent+label')
-    pizza.update_layout(title="Distribuição de instrumentos:", showlegend=True)
+        barras.update_layout(
+            title="Comparativo de Registros processados: ",
+            xaxis_title="Código do Subprograma",
+            yaxis_title="Registros processados (%)",
+            barmode='group',
+            xaxis_tickangle=0,
+            bargap=0.15,      
+            bargroupgap=0.05, 
+            template="plotly_white",
+        )
 
-    st.plotly_chart(pizza, width="stretch") 
+        st.plotly_chart(barras)
 
+    elif (inst == "null") and (sp != "null"):
+        
+        labels = table["Instrumento"].astype(str)
+        labels = labels.drop_duplicates()
+        processados = table["% de registros processados"]
+        
+        barras = go.Figure()
+
+        barras.add_trace(go.Bar(
+            x=processados,
+            y=labels,
+            name="processados",
+            marker_color='#4169E1',
+            orientation='h',
+            offsetgroup=1
+        ))
+
+        barras.update_layout(
+            title=f"Comparativo de Instrumentos processados no subprograma {sp}: ",
+            xaxis_title="Registros processados (%)",
+            yaxis_title="Instrumento",
+            barmode='group',
+            xaxis_tickangle=0,
+            bargap=0.15,      
+            bargroupgap=0.05, 
+            template="plotly_white",
+                 legend=dict(
+                title='',
+                orientation='h',
+                yanchor='bottom',
+                y=1.05,
+                xanchor='right',
+                x=1,
+            )
+        )
+
+        barras.update_xaxes(range=[0, 101])
+        st.plotly_chart(barras, width='stretch')
+        
 def report_tab3():
     
     global programas, subprogramas
@@ -430,11 +464,43 @@ def report_tab3():
     }
     st.dataframe(table, hide_index=True, column_config=column_config)
    
+def report_tab4():
+    
+    col1, col2, col3 = st.columns([1.5, 1, 1])
+    with col1:
+        st.markdown("**Adicione as datas referentes ao início e término dos subprogramas:**")
+        lista_sp.pop(0)
+        select_sp = st.selectbox("Suprograma",options=lista_sp, key="sp_tab4")
+        sp = num_sp(select_sp)
+        inicio = st.date_input("Data de início")
+        fim = st.date_input("Data de término")
+        arquivo = "datas.csv"
+        datas = pd.DataFrame(pd.read_csv(arquivo))
+        if st.button("adicionar datas"):
+
+            datas.loc[datas["subprograma"] == sp, "inicio"] = inicio
+            datas.loc[datas["subprograma"] == sp, "fim"] = fim
+            datas['inicio'] = pd.to_datetime(datas['inicio'])
+            datas['fim'] = pd.to_datetime(datas['fim'])
+            datas.loc[datas["subprograma"] == sp, "diferenca"] = (datas["fim"] - datas["inicio"]).dt.days
+
+            url = f'http://10.0.10.22:41112/gw/reports/generate_report_xls/CAED7027-1707:2025/9/ID_FONTE_DADO="null"&CD_PROGRAMA={sp}'
+            response = requests.get(url)
+            response.raise_for_status()
+
+            excel = BytesIO(response.content)
+            df = pd.DataFrame(pd.read_excel(excel))
+            datas.loc[
+            datas["subprograma"] == sp, "esperado"] = df["Total de registros previstos"] / datas["diferenca"]  
+            datas.to_csv(arquivo, index=False)
+
+    st.dataframe(datas, hide_index=True)
+
 def dashboard():
     
     st.title("Dashboards")
     
-    tab1, tab2 = st.tabs(["processamento / instrumento", "verificação"])
+    tab1, tab2, tab3 = st.tabs(["Processamento / Instrumento", "Verificação", "Datas digitalização"])
 
     with tab1:
         st.header("Relatórios de processamento:")
@@ -447,6 +513,11 @@ def dashboard():
     with tab2:
         st.header("Relatório Verificação - Subprograma / Solicitação ")
         report_tab3()
+
+    
+    with tab3:
+        st.header("Datas das digitalizações")
+        report_tab4()
 
 def main():
   
