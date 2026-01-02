@@ -4,6 +4,7 @@ import streamlit as st
 import pandas as pd
 import requests, json
 import plotly.graph_objects as go
+from datetime import date, datetime
 
 st.set_page_config(page_title="Dashboard", layout="wide", page_icon="images\\icon.png")
 
@@ -71,7 +72,7 @@ def atualiza_id(prog):
 
 def report_tab1():
     
-    select_sp = st.selectbox("Suprograma",options=lista_sp, key="sp_tab1")
+    select_sp = st.selectbox("Subprograma",options=lista_sp, key="sp_tab1")
     sp = num_sp(select_sp)
     url = f'http://10.0.10.22:41112/gw/reports/generate_report_xls/CAED7027-1707:2025/9/ID_FONTE_DADO="null"&CD_PROGRAMA={sp}'
     response = requests.get(url)
@@ -241,7 +242,7 @@ def report_tab2():
     instrumentos = sorted(instrumentos)
     instrumentos.insert(0, "Todos")
 
-    select_sp = st.selectbox("Suprograma",options=lista_sp, key="sp_tab2")
+    select_sp = st.selectbox("Subprograma",options=lista_sp, key="sp_tab2")
     sp = num_sp(select_sp)
     
     inst = st.selectbox("Instrumento", options=instrumentos)
@@ -340,7 +341,7 @@ def report_tab2():
 def report_tab3():
     
     global programas, subprogramas
-    subprog = st.selectbox("Suprograma",options=lista_sp, key="subprog_tab3")
+    subprog = st.selectbox("Subprograma",options=lista_sp, key="subprog_tab3")
     ns = num_sp(subprog)
 
     def sol(prog, subprog, solicit):
@@ -424,7 +425,7 @@ def report_tab3():
     prog = atualiza_id(entrada_prog)
     if prog != "null":
         opcoes_subprogramas = subprogramas[prog]
-        sp = st.selectbox("Suprograma",options=opcoes_subprogramas, key="sp_tab3")
+        sp = st.selectbox("Subprograma",options=opcoes_subprogramas, key="sp_tab3")
     else:
         sp = str("Todos")
     subprog = num_sp(sp)
@@ -465,36 +466,73 @@ def report_tab3():
     st.dataframe(table, hide_index=True, column_config=column_config)
    
 def report_tab4():
-    
+   
     col1, col2, col3 = st.columns([1.5, 1, 1])
+
     with col1:
         st.markdown("**Adicione as datas referentes ao início e término dos subprogramas:**")
+
         lista_sp.pop(0)
-        select_sp = st.selectbox("Suprograma",options=lista_sp, key="sp_tab4")
+        select_sp = st.selectbox("Subprograma", options=lista_sp, key="sp_tab4")
         sp = num_sp(select_sp)
-        inicio = st.date_input("Data de início")
-        fim = st.date_input("Data de término")
+
+        inicio = st.date_input("Data de início", format="DD/MM/YYYY")
+        fim = st.date_input("Data de término", format="DD/MM/YYYY")
+
         arquivo = "datas.csv"
-        datas = pd.DataFrame(pd.read_csv(arquivo))
-        if st.button("adicionar datas"):
+        datas = pd.read_csv(arquivo)
 
-            datas.loc[datas["subprograma"] == sp, "inicio"] = inicio
-            datas.loc[datas["subprograma"] == sp, "fim"] = fim
-            datas['inicio'] = pd.to_datetime(datas['inicio'])
-            datas['fim'] = pd.to_datetime(datas['fim'])
-            datas.loc[datas["subprograma"] == sp, "diferenca"] = (datas["fim"] - datas["inicio"]).dt.days
+        datas["inicio"] = pd.to_datetime(datas["inicio"], errors="coerce")
+        datas["fim"] = pd.to_datetime(datas["fim"], errors="coerce")
 
-            url = f'http://10.0.10.22:41112/gw/reports/generate_report_xls/CAED7027-1707:2025/9/ID_FONTE_DADO="null"&CD_PROGRAMA={sp}'
-            response = requests.get(url)
-            response.raise_for_status()
+        url = f'http://10.0.10.22:41112/gw/reports/generate_report_xls/CAED7027-1707:2025/9/ID_FONTE_DADO="null"&CD_PROGRAMA={sp}'
+        response = requests.get(url)
+        response.raise_for_status()
 
-            excel = BytesIO(response.content)
-            df = pd.DataFrame(pd.read_excel(excel))
-            datas.loc[
-            datas["subprograma"] == sp, "esperado"] = df["Total de registros previstos"] / datas["diferenca"]  
+        df = pd.read_excel(BytesIO(response.content))
+        total_previsto = df.loc[df["Cód. subprograma"] == sp, "Total de registros previstos"].sum()
+
+        if "nome" not in datas.columns:
+            mapa_sub = { s.split(" - ")[0]: " - ".join(s.split(" - ")[1:]) for s in lista_sp if s != "Todos"}
+            datas.insert(1, "nome", datas["subprograma"].astype(str).map(mapa_sub))
+
+        previstos = df.loc[df["Cód. subprograma"] == sp, "Total de registros previstos"].iloc[0]
+        datas.loc[datas["subprograma"] == sp,"previstos"] = previstos
+
+        digitalizados = df.loc[df["Cód. subprograma"] == sp, "Total de registros digitalizados"].iloc[0]
+        datas.loc[datas["subprograma"] == sp,"digitalizados"] = digitalizados
+
+        if st.button("Adicionar / Atualizar datas"):
+
+            mask = datas["subprograma"] == sp
+            hoje = pd.Timestamp(date.today())
+
+            inicio = pd.to_datetime(inicio)
+            fim = pd.to_datetime(fim)
+            datas.loc[mask, "inicio"] = inicio
+            datas.loc[mask, "fim"] = fim
+
+            diferenca = (datas.loc[mask, "fim"] - datas.loc[mask, "inicio"]).dt.days
+            datas.loc[mask, "diferenca"] = diferenca
+
+            media_dia = total_previsto / diferenca
+            datas.loc[mask, "media dia"] = media_dia
+
+            dias_passados = (hoje - datas.loc[mask, "inicio"]).dt.days.clip(lower=0)
+            datas.loc[mask, "esperado hoje"] = media_dia * dias_passados
+
             datas.to_csv(arquivo, index=False)
+            st.success("Datas adicionadas!")
 
-    st.dataframe(datas, hide_index=True)
+    st.dataframe(datas, hide_index=True, column_config={
+        "previstos": None,
+        "digitalizados": None,
+        "inicio": st.column_config.DateColumn(format="DD/MM/YYYY"),
+        "fim": st.column_config.DateColumn(format="DD/MM/YYYY"),
+        "diferenca": None,
+        "media dia": None,
+        "esperado hoje": st.column_config.NumberColumn(format="localized")
+    })
 
 def dashboard():
     
