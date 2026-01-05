@@ -2,9 +2,9 @@ from io import BytesIO
 from client import Client
 import streamlit as st
 import pandas as pd
-import requests, json
+import requests
 import plotly.graph_objects as go
-from datetime import date, datetime
+from datetime import date
 
 st.set_page_config(page_title="Dashboard", layout="wide", page_icon="images\\icon.png")
 
@@ -61,6 +61,10 @@ def num_sp(sp):
     if sp != "Todos":
         return int(sp[0:4])
     return "null"
+
+lista_num_sp = []
+for i in lista_sp:
+    lista_num_sp.append(num_sp(i))
 
 def atualiza_id(prog):
     if prog == "Todos":
@@ -492,8 +496,9 @@ def report_tab4():
         df = pd.read_excel(BytesIO(response.content))
         total_previsto = df.loc[df["Cód. subprograma"] == sp, "Total de registros previstos"].sum()
 
+        mapa_sub = { s.split(" - ")[0]: " - ".join(s.split(" - ")[1:]) for s in lista_sp if s != "Todos"}
+
         if "nome" not in datas.columns:
-            mapa_sub = { s.split(" - ")[0]: " - ".join(s.split(" - ")[1:]) for s in lista_sp if s != "Todos"}
             datas.insert(1, "nome", datas["subprograma"].astype(str).map(mapa_sub))
 
         previstos = df.loc[df["Cód. subprograma"] == sp, "Total de registros previstos"].iloc[0]
@@ -502,37 +507,102 @@ def report_tab4():
         digitalizados = df.loc[df["Cód. subprograma"] == sp, "Total de registros digitalizados"].iloc[0]
         datas.loc[datas["subprograma"] == sp,"digitalizados"] = digitalizados
 
+        df.insert(loc=3, column="% de registros digitalizados", value=((pd.to_numeric(df["Total de registros digitalizados"]) / pd.to_numeric(df["Total de registros previstos"]))*100).round(2))
+        digitalizados_p = df.loc[df["Cód. subprograma"] == sp, "% de registros digitalizados"].iloc[0]
+        datas.loc[datas["subprograma"] == sp,"% digitalizados"] = digitalizados_p
+
         if st.button("Adicionar / Atualizar datas"):
 
-            mask = datas["subprograma"] == sp
-            hoje = pd.Timestamp(date.today())
+            if sp not in datas["subprograma"].values:
+                nova_linha = {
+                    "subprograma": sp,
+                    "nome": mapa_sub.get(str(sp)),
+                    "inicio": pd.NaT,
+                    "fim": pd.NaT,
+                    "diferenca": None,
+                    "media dia": None,
+                    "esperado hoje": None,
+                    "previstos": None,
+                    "digitalizados": None,
+                    "% digitalizados": None
+                }
+                datas = pd.concat([datas, pd.DataFrame([nova_linha])], ignore_index=True)
 
+            mask = datas["subprograma"] == sp  
+
+            hoje = pd.Timestamp(date.today())
             inicio = pd.to_datetime(inicio)
             fim = pd.to_datetime(fim)
+
             datas.loc[mask, "inicio"] = inicio
             datas.loc[mask, "fim"] = fim
 
-            diferenca = (datas.loc[mask, "fim"] - datas.loc[mask, "inicio"]).dt.days
+            diferenca = (datas.loc[mask, "fim"] - datas.loc[mask, "inicio"]).dt.days.clip(lower=1)
             datas.loc[mask, "diferenca"] = diferenca
 
-            media_dia = total_previsto / diferenca
+            media_dia = (total_previsto / diferenca).round(0)
             datas.loc[mask, "media dia"] = media_dia
 
             dias_passados = (hoje - datas.loc[mask, "inicio"]).dt.days.clip(lower=0)
-            datas.loc[mask, "esperado hoje"] = media_dia * dias_passados
 
+            esperado_hoje = media_dia * dias_passados
+            datas.loc[mask, "esperado hoje"] = esperado_hoje.clip(lower=0, upper=datas.loc[mask, "previstos"])
+            datas["esperado hoje"] = datas["esperado hoje"].round(0)
+                      
+            datas = datas[datas["subprograma"].isin(lista_num_sp)]
             datas.to_csv(arquivo, index=False)
-            st.success("Datas adicionadas!")
 
+            st.success("Datas adicionadas!")
+    
     st.dataframe(datas, hide_index=True, column_config={
         "previstos": None,
-        "digitalizados": None,
         "inicio": st.column_config.DateColumn(format="DD/MM/YYYY"),
         "fim": st.column_config.DateColumn(format="DD/MM/YYYY"),
         "diferenca": None,
         "media dia": None,
-        "esperado hoje": st.column_config.NumberColumn(format="localized")
+        "digitalizados": st.column_config.NumberColumn(format="localized"),
+        "esperado hoje": st.column_config.NumberColumn(format="localized"),
+        "% digitalizados":None
     })
+
+    labels = datas["subprograma"].astype(str)+" - "+datas["nome"]  
+    digitalizados = datas["% digitalizados"]
+    datas['cor'] = datas.apply(lambda row: 'green' if ((row['digitalizados'] > row['esperado hoje']) or (row['digitalizados'] == row['esperado hoje']) or (row['digitalizados'] > (row['esperado hoje'] * 0.9))) else 'red', axis=1)
+    colors = datas["cor"]
+
+    fig = go.Figure()
+
+    fig.add_trace(go.Bar(
+        x=digitalizados,   
+        y=labels,        
+        name="Digitalizados",
+        marker_color=colors,
+        orientation='h',  
+        offsetgroup=1
+    ))
+
+    fig.update_layout(
+        height=800,
+        title="Verificação de registros digitalizados por subprograma:",
+        xaxis_title="Registros processados (%)",   
+        yaxis_title="Subprograma",
+        barmode='group',
+        xaxis_tickangle=0,
+        bargap=0.15,
+        bargroupgap=0.05,
+        template="plotly_white",
+        legend=dict(
+            title='',
+            orientation='h',
+            yanchor='bottom',
+            y=1.05,
+            xanchor='right',
+            x=1,
+        )
+    )
+
+    st.plotly_chart(fig, width="stretch")
+
 
 def dashboard():
     
