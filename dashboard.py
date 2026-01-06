@@ -474,14 +474,15 @@ def report_tab4():
     col1, col2, col3 = st.columns([1.5, 1, 1])
 
     with col1:
-        st.markdown("**Adicione as datas referentes ao início e término dos subprogramas:**")
-
-        lista_sp.pop(0)
-        select_sp = st.selectbox("Subprograma", options=lista_sp, key="sp_tab4")
-        sp = num_sp(select_sp)
-
-        inicio = st.date_input("Data de início", format="DD/MM/YYYY")
-        fim = st.date_input("Data de término", format="DD/MM/YYYY")
+        
+        with st.form(key="tab4"):
+            st.markdown("**Adicione as datas referentes ao início e término dos subprogramas:**")
+            lista_sp.pop(0)
+            select_sp = st.selectbox("Subprograma", options=lista_sp, key="sp_tab4")
+            sp = num_sp(select_sp)
+            inicio = st.date_input("Data de início", format="DD/MM/YYYY")
+            fim = st.date_input("Data de término", format="DD/MM/YYYY")
+            submitted = st.form_submit_button("Adicionar / Atualizar datas")
 
         arquivo = "datas.csv"
         datas = pd.read_csv(arquivo)
@@ -511,7 +512,7 @@ def report_tab4():
         digitalizados_p = df.loc[df["Cód. subprograma"] == sp, "% de registros digitalizados"].iloc[0]
         datas.loc[datas["subprograma"] == sp,"% digitalizados"] = digitalizados_p
 
-        if st.button("Adicionar / Atualizar datas"):
+        if submitted:
 
             if sp not in datas["subprograma"].values:
                 nova_linha = {
@@ -554,6 +555,7 @@ def report_tab4():
 
             st.success("Datas adicionadas!")
     
+    datas = datas.sort_values(by="subprograma")
     st.dataframe(datas, hide_index=True, column_config={
         "previstos": None,
         "inicio": st.column_config.DateColumn(format="DD/MM/YYYY"),
@@ -584,7 +586,7 @@ def report_tab4():
     fig.update_layout(
         height=800,
         title="Verificação de registros digitalizados por subprograma:",
-        xaxis_title="Registros processados (%)",   
+        xaxis_title="Registros digitalizados (%)",   
         yaxis_title="Subprograma",
         barmode='group',
         xaxis_tickangle=0,
