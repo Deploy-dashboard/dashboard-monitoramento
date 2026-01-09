@@ -557,7 +557,7 @@ def report_tab4():
     
     datas = datas.sort_values(by="subprograma")
     st.dataframe(datas, hide_index=True, column_config={
-        "previstos": None,
+        "previstos": st.column_config.NumberColumn(format="localized"),
         "inicio": st.column_config.DateColumn(format="DD/MM/YYYY"),
         "fim": st.column_config.DateColumn(format="DD/MM/YYYY"),
         "diferenca": None,
