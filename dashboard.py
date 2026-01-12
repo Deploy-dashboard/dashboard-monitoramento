@@ -304,7 +304,8 @@ def report_tab2():
         st.plotly_chart(barras)
 
     elif (inst == "null") and (sp != "null"):
-        
+
+        table = table.drop_duplicates(subset=['Instrumento'])
         labels = table["Instrumento"].astype(str)
         labels = labels.drop_duplicates()
         processados = table["% de registros processados"]
