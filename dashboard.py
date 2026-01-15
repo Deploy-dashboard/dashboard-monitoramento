@@ -235,12 +235,13 @@ def report_tab1():
 
 def report_tab2():
     
-    url_padrao = 'http://10.0.10.22:41112/gw/reports/generate_report_xls/CAED7028-1707:2025/9/ID_FONTE_DADO=null&CD_PROGRAMA=null&DC_INSTRUMENTO_TIPO=null'
-    response = requests.get(url_padrao)
-    response.raise_for_status()
-
-    excel = BytesIO(response.content)
-    df = pd.DataFrame(pd.read_excel(excel))
+    def sol(sp, inst):
+        url = f'http://10.0.10.22:41112/gw/reports/generate_report_xls/CAED7028-1707:2025/9/ID_FONTE_DADO={"null"}&CD_PROGRAMA={sp}&DC_INSTRUMENTO_TIPO={inst}'
+        response = requests.get(url)
+        return BytesIO(response.content)
+    
+    response = sol("null", "null")
+    df = pd.DataFrame(pd.read_excel(response))
     
     instrumentos = df['Instrumento'].unique().tolist()
     instrumentos = sorted(instrumentos)
@@ -252,11 +253,10 @@ def report_tab2():
     inst = st.selectbox("Instrumento", options=instrumentos)
     if inst == "Todos":
         inst = "null"
-    url_instrumento = f'http://10.0.10.22:41112/gw/reports/generate_report_xls/CAED7028-1707:2025/9/ID_FONTE_DADO={"null"}&CD_PROGRAMA={sp}&DC_INSTRUMENTO_TIPO={inst}'
-    
-    response1 = requests.get(url_instrumento)
-    ex = BytesIO(response1.content)
+
+    ex = sol(sp, inst)
     table = pd.DataFrame(pd.read_excel(ex))
+    
     table["Total de registros digitalizados"] = pd.to_numeric(table["Total de registros digitalizados"], errors="coerce")
     table["Total de registros previstos"] = pd.to_numeric(table["Total de registros previstos"], errors="coerce")
     table["% de registros digitalizados"] = ((table["Total de registros digitalizados"] / table["Total de registros previstos"]) * 100).round(2)
@@ -469,6 +469,7 @@ def report_tab3():
     for col in table.columns[3:]
     }
     st.dataframe(table, hide_index=True, column_config=column_config)
+
    
 def report_tab4():
    
@@ -485,17 +486,23 @@ def report_tab4():
             fim = st.date_input("Data de término", format="DD/MM/YYYY")
             submitted = st.form_submit_button("Adicionar / Atualizar datas")
 
+        hoje = pd.Timestamp(date.today())
         arquivo = "datas.csv"
         datas = pd.read_csv(arquivo)
 
         datas["inicio"] = pd.to_datetime(datas["inicio"], errors="coerce")
         datas["fim"] = pd.to_datetime(datas["fim"], errors="coerce")
 
-        url = f'http://10.0.10.22:41112/gw/reports/generate_report_xls/CAED7027-1707:2025/9/ID_FONTE_DADO="null"&CD_PROGRAMA={sp}'
-        response = requests.get(url)
-        response.raise_for_status()
+        def sol(sp):
+            url = f'http://10.0.10.22:41112/gw/reports/generate_report_xls/CAED7027-1707:2025/9/ID_FONTE_DADO="null"&CD_PROGRAMA={sp}'
+            return requests.get(url)
+
+        response = sol(sp)
+        res = sol("null")
 
         df = pd.read_excel(BytesIO(response.content))
+        df_base = pd.read_excel(BytesIO(res.content))
+
         total_previsto = df.loc[df["Cód. subprograma"] == sp, "Total de registros previstos"].sum()
 
         mapa_sub = { s.split(" - ")[0]: " - ".join(s.split(" - ")[1:]) for s in lista_sp if s != "Todos"}
@@ -512,6 +519,18 @@ def report_tab4():
         df.insert(loc=3, column="% de registros digitalizados", value=((pd.to_numeric(df["Total de registros digitalizados"]) / pd.to_numeric(df["Total de registros previstos"]))*100).round(2))
         digitalizados_p = df.loc[df["Cód. subprograma"] == sp, "% de registros digitalizados"].iloc[0]
         datas.loc[datas["subprograma"] == sp,"% digitalizados"] = digitalizados_p
+        
+        datas = datas.merge(df_base[['Cód. subprograma', 'Total de registros digitalizados']], left_on='subprograma', right_on='Cód. subprograma', how='left')
+        datas.drop(columns='Cód. subprograma', inplace=True)
+
+        datas = datas.merge(df_base[['Cód. subprograma', 'Total de registros previstos']], left_on='subprograma', right_on='Cód. subprograma', how='left')
+        datas["digitalizados"] = datas["Total de registros digitalizados"]
+        datas["previstos"] = datas["Total de registros previstos"]
+        datas.drop(columns=['Total de registros previstos', "Total de registros digitalizados", 'Cód. subprograma'], inplace=True)
+        datas["% digitalizados"] = ((datas["digitalizados"] / datas["previstos"]) * 100).round(2)
+
+        datas["esperado hoje"] = (datas["media dia"] * (hoje - datas["inicio"]).dt.days).round(0)
+        datas["esperado hoje"] = datas["esperado hoje"].clip(lower=0, upper=datas["previstos"])
 
         if submitted:
 
@@ -531,8 +550,6 @@ def report_tab4():
                 datas = pd.concat([datas, pd.DataFrame([nova_linha])], ignore_index=True)
 
             mask = datas["subprograma"] == sp  
-
-            hoje = pd.Timestamp(date.today())
             inicio = pd.to_datetime(inicio)
             fim = pd.to_datetime(fim)
 
