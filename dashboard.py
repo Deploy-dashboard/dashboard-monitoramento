@@ -235,12 +235,13 @@ def report_tab1():
 
 def report_tab2():
     
-    url_padrao = 'http://10.0.10.22:41112/gw/reports/generate_report_xls/CAED7028-1707:2025/9/ID_FONTE_DADO=null&CD_PROGRAMA=null&DC_INSTRUMENTO_TIPO=null'
-    response = requests.get(url_padrao)
-    response.raise_for_status()
-
-    excel = BytesIO(response.content)
-    df = pd.DataFrame(pd.read_excel(excel))
+    def sol(sp, inst):
+        url = f'http://10.0.10.22:41112/gw/reports/generate_report_xls/CAED7028-1707:2025/9/ID_FONTE_DADO={"null"}&CD_PROGRAMA={sp}&DC_INSTRUMENTO_TIPO={inst}'
+        response = requests.get(url)
+        return BytesIO(response.content)
+    
+    response = sol("null", "null")
+    df = pd.DataFrame(pd.read_excel(response))
     
     instrumentos = df['Instrumento'].unique().tolist()
     instrumentos = sorted(instrumentos)
@@ -252,11 +253,10 @@ def report_tab2():
     inst = st.selectbox("Instrumento", options=instrumentos)
     if inst == "Todos":
         inst = "null"
-    url_instrumento = f'http://10.0.10.22:41112/gw/reports/generate_report_xls/CAED7028-1707:2025/9/ID_FONTE_DADO={"null"}&CD_PROGRAMA={sp}&DC_INSTRUMENTO_TIPO={inst}'
-    
-    response1 = requests.get(url_instrumento)
-    ex = BytesIO(response1.content)
+
+    ex = sol(sp, inst)
     table = pd.DataFrame(pd.read_excel(ex))
+    
     table["Total de registros digitalizados"] = pd.to_numeric(table["Total de registros digitalizados"], errors="coerce")
     table["Total de registros previstos"] = pd.to_numeric(table["Total de registros previstos"], errors="coerce")
     table["% de registros digitalizados"] = ((table["Total de registros digitalizados"] / table["Total de registros previstos"]) * 100).round(2)
@@ -469,6 +469,7 @@ def report_tab3():
     for col in table.columns[3:]
     }
     st.dataframe(table, hide_index=True, column_config=column_config)
+
    
 def report_tab4():
    
@@ -492,16 +493,16 @@ def report_tab4():
         datas["inicio"] = pd.to_datetime(datas["inicio"], errors="coerce")
         datas["fim"] = pd.to_datetime(datas["fim"], errors="coerce")
 
-        url_base = f'http://10.0.10.22:41112/gw/reports/generate_report_xls/CAED7027-1707:2025/9/ID_FONTE_DADO="null"&CD_PROGRAMA=null'
-        url = f'http://10.0.10.22:41112/gw/reports/generate_report_xls/CAED7027-1707:2025/9/ID_FONTE_DADO="null"&CD_PROGRAMA={sp}'
-        response = requests.get(url)
-        response.raise_for_status()
+        def sol(sp):
+            url = f'http://10.0.10.22:41112/gw/reports/generate_report_xls/CAED7027-1707:2025/9/ID_FONTE_DADO="null"&CD_PROGRAMA={sp}'
+            return requests.get(url)
 
-        res = requests.get(url_base)
-        res.raise_for_status()
+        response = sol(sp)
+        res = sol("null")
 
         df = pd.read_excel(BytesIO(response.content))
         df_base = pd.read_excel(BytesIO(res.content))
+
         total_previsto = df.loc[df["Cód. subprograma"] == sp, "Total de registros previstos"].sum()
 
         mapa_sub = { s.split(" - ")[0]: " - ".join(s.split(" - ")[1:]) for s in lista_sp if s != "Todos"}
