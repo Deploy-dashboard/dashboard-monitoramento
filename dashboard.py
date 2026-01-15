@@ -485,6 +485,7 @@ def report_tab4():
             fim = st.date_input("Data de término", format="DD/MM/YYYY")
             submitted = st.form_submit_button("Adicionar / Atualizar datas")
 
+        hoje = pd.Timestamp(date.today())
         arquivo = "datas.csv"
         datas = pd.read_csv(arquivo)
 
@@ -520,11 +521,15 @@ def report_tab4():
         
         datas = datas.merge(df_base[['Cód. subprograma', 'Total de registros digitalizados']], left_on='subprograma', right_on='Cód. subprograma', how='left')
         datas.drop(columns='Cód. subprograma', inplace=True)
+
         datas = datas.merge(df_base[['Cód. subprograma', 'Total de registros previstos']], left_on='subprograma', right_on='Cód. subprograma', how='left')
         datas["digitalizados"] = datas["Total de registros digitalizados"]
         datas["previstos"] = datas["Total de registros previstos"]
         datas.drop(columns=['Total de registros previstos', "Total de registros digitalizados", 'Cód. subprograma'], inplace=True)
         datas["% digitalizados"] = ((datas["digitalizados"] / datas["previstos"]) * 100).round(2)
+
+        datas["esperado hoje"] = (datas["media dia"] * (hoje - datas["inicio"]).dt.days).round(0)
+        datas["esperado hoje"] = datas["esperado hoje"].clip(lower=0, upper=datas["previstos"])
 
         if submitted:
 
@@ -544,8 +549,6 @@ def report_tab4():
                 datas = pd.concat([datas, pd.DataFrame([nova_linha])], ignore_index=True)
 
             mask = datas["subprograma"] == sp  
-
-            hoje = pd.Timestamp(date.today())
             inicio = pd.to_datetime(inicio)
             fim = pd.to_datetime(fim)
 
