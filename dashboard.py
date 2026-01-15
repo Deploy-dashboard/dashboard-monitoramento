@@ -491,11 +491,16 @@ def report_tab4():
         datas["inicio"] = pd.to_datetime(datas["inicio"], errors="coerce")
         datas["fim"] = pd.to_datetime(datas["fim"], errors="coerce")
 
+        url_base = f'http://10.0.10.22:41112/gw/reports/generate_report_xls/CAED7027-1707:2025/9/ID_FONTE_DADO="null"&CD_PROGRAMA=null'
         url = f'http://10.0.10.22:41112/gw/reports/generate_report_xls/CAED7027-1707:2025/9/ID_FONTE_DADO="null"&CD_PROGRAMA={sp}'
         response = requests.get(url)
         response.raise_for_status()
 
+        res = requests.get(url_base)
+        res.raise_for_status()
+
         df = pd.read_excel(BytesIO(response.content))
+        df_base = pd.read_excel(BytesIO(res.content))
         total_previsto = df.loc[df["Cód. subprograma"] == sp, "Total de registros previstos"].sum()
 
         mapa_sub = { s.split(" - ")[0]: " - ".join(s.split(" - ")[1:]) for s in lista_sp if s != "Todos"}
@@ -512,6 +517,14 @@ def report_tab4():
         df.insert(loc=3, column="% de registros digitalizados", value=((pd.to_numeric(df["Total de registros digitalizados"]) / pd.to_numeric(df["Total de registros previstos"]))*100).round(2))
         digitalizados_p = df.loc[df["Cód. subprograma"] == sp, "% de registros digitalizados"].iloc[0]
         datas.loc[datas["subprograma"] == sp,"% digitalizados"] = digitalizados_p
+        
+        datas = datas.merge(df_base[['Cód. subprograma', 'Total de registros digitalizados']], left_on='subprograma', right_on='Cód. subprograma', how='left')
+        datas.drop(columns='Cód. subprograma', inplace=True)
+        datas = datas.merge(df_base[['Cód. subprograma', 'Total de registros previstos']], left_on='subprograma', right_on='Cód. subprograma', how='left')
+        datas["digitalizados"] = datas["Total de registros digitalizados"]
+        datas["previstos"] = datas["Total de registros previstos"]
+        datas.drop(columns=['Total de registros previstos', "Total de registros digitalizados", 'Cód. subprograma'], inplace=True)
+        datas["% digitalizados"] = ((datas["digitalizados"] / datas["previstos"]) * 100).round(2)
 
         if submitted:
 
