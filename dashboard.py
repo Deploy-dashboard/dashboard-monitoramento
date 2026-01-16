@@ -238,11 +238,10 @@ def report_tab2():
     def sol(sp, inst):
         url = f'http://10.0.10.22:41112/gw/reports/generate_report_xls/CAED7028-1707:2025/9/ID_FONTE_DADO={"null"}&CD_PROGRAMA={sp}&DC_INSTRUMENTO_TIPO={inst}'
         response = requests.get(url)
-        return BytesIO(response.content)
+        content = BytesIO(response.content)
+        return pd.DataFrame(pd.read_excel(content))
     
-    response = sol("null", "null")
-    df = pd.DataFrame(pd.read_excel(response))
-    
+    df = sol("null", "null") 
     instrumentos = df['Instrumento'].unique().tolist()
     instrumentos = sorted(instrumentos)
     instrumentos.insert(0, "Todos")
@@ -254,8 +253,7 @@ def report_tab2():
     if inst == "Todos":
         inst = "null"
 
-    ex = sol(sp, inst)
-    table = pd.DataFrame(pd.read_excel(ex))
+    table = sol(sp, inst)
     
     table["Total de registros digitalizados"] = pd.to_numeric(table["Total de registros digitalizados"], errors="coerce")
     table["Total de registros previstos"] = pd.to_numeric(table["Total de registros previstos"], errors="coerce")
@@ -353,8 +351,7 @@ def report_tab3():
         s = f"http://10.0.10.22:41112/gw/reports/generate_report_xls/CAED7029-2307:2025/9/ID_FONTE_DADO={prog}&CD_PROGRAMA={subprog}&DC_SOLICITACAO={solicit}"
         response = requests.get(s)
         content = BytesIO(response.content)
-        df = pd.DataFrame(pd.read_excel(content))
-        return df
+        return pd.DataFrame(pd.read_excel(content))
     
     df  = sol("null", ns, "null")
     resume = df.loc[df["Verificação"] == ("Subtotal")]
@@ -495,13 +492,12 @@ def report_tab4():
 
         def sol(sp):
             url = f'http://10.0.10.22:41112/gw/reports/generate_report_xls/CAED7027-1707:2025/9/ID_FONTE_DADO="null"&CD_PROGRAMA={sp}'
-            return requests.get(url)
+            response = requests.get(url)
+            content = BytesIO(response.content)
+            return pd.DataFrame(pd.read_excel(content))
 
-        response = sol(sp)
-        res = sol("null")
-
-        df = pd.read_excel(BytesIO(response.content))
-        df_base = pd.read_excel(BytesIO(res.content))
+        df = sol(sp)
+        df_base = sol("null")
 
         total_previsto = df.loc[df["Cód. subprograma"] == sp, "Total de registros previstos"].sum()
 
