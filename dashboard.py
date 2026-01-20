@@ -448,11 +448,7 @@ def report_tab3():
 
     solicitacao = solicitacao.replace(" ", "%20")
     
-    url = f"http://10.0.10.22:41112/gw/reports/generate_report_xls/CAED7029-2307:2025/9/ID_FONTE_DADO={prog}&CD_PROGRAMA={subprog}&DC_SOLICITACAO={solicitacao}"
-
-    resp = requests.get(url)
-    excel = BytesIO(resp.content)
-    table = pd.DataFrame(pd.read_excel(excel))
+    table = sol(prog, subprog, solicitacao)
     table = table[table["Verificação"] != "Subtotal"]
     table = table[table["Cód. subprograma"] != "Total"]
     mapa_sub = { s.split(" - ")[0]: " - ".join(s.split(" - ")[1:]) for s in lista_sp if s != "Todos"}
@@ -650,7 +646,8 @@ def main():
 
   if not st.session_state.authenticated:
     login_page()
-    st.stop()  
+    st.stop()
+      
   else:
     dashboard()
 
