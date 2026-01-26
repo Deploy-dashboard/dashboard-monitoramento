@@ -615,12 +615,16 @@ def report_tab4():
 
     st.plotly_chart(fig, width="stretch")
 
+def report_tab5():
+
+    st.subheader("")       
+
 
 def dashboard():
     
     st.title("Dashboards")
     
-    tab1, tab2, tab3 = st.tabs(["Processamento / Instrumento", "Verificação", "Datas digitalização"])
+    tab1, tab2, tab3, tab4 = st.tabs(["Processamento / Instrumento", "Verificação", "Datas digitalização", "Progresso"])
 
     with tab1:
         st.header("Relatórios de processamento:")
@@ -638,6 +642,12 @@ def dashboard():
     with tab3:
         st.header("Datas das digitalizações")
         report_tab4()
+
+    
+    with tab4:
+        st.header("Evolução")
+        report_tab5()
+
 
 def main():
   
