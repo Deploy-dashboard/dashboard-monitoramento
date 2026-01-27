@@ -617,7 +617,51 @@ def report_tab4():
 
 def report_tab5():
 
-    st.subheader("")       
+    arquivo = 'progresso.csv'
+
+    if 'df' not in st.session_state:
+        df = pd.read_csv(arquivo)
+
+        colunas_data = ['frop1', 'frop2', 'frop3', 'verificação']
+        for col in colunas_data:
+            df[col] = pd.to_datetime(df[col], dayfirst=True, errors='coerce')
+
+        st.session_state.df = df
+
+    df = st.session_state.df
+
+    for sp in lista_num_sp:
+        if (sp != "null") and (int(sp) not in df["subprograma"].values):
+            df.loc[len(df), 'subprograma'] = int(sp)
+
+    mapa_sub = {s.split(" - ")[0]: " - ".join(s.split(" - ")[1:]) 
+                for s in lista_sp if s != "Todos"}
+
+    mask = df["nome"].isna()
+    df.loc[mask, "nome"] = (
+        df.loc[mask, "subprograma"].astype(str).map(mapa_sub)
+    )
+
+    progresso = st.data_editor(
+        df,
+        num_rows="dynamic",
+        column_config={
+            "frop1": st.column_config.DateColumn(format="DD/MM/YYYY"),
+            "frop2": st.column_config.DateColumn(format="DD/MM/YYYY"),
+            "frop3": st.column_config.DateColumn(format="DD/MM/YYYY"),
+            "verificação": st.column_config.DateColumn(format="DD/MM/YYYY"),
+        }
+    )
+
+    if st.button("Salvar Alterações"):
+        st.session_state.df = progresso
+        st.session_state.df.to_csv('progresso.csv', index=False)
+        st.success("Dados atualizados com sucesso!")
+
+    st.subheader("Evolução")
+
+
+
 
 
 def dashboard():
@@ -645,7 +689,8 @@ def dashboard():
 
     
     with tab4:
-        st.header("Evolução")
+        st.subheader("Datas das tarefas correspondentes a cada subprograma")
+        st.text('Adicione as datas de término de cada tarefa, também é possível adicionar novas linhas e colunas.')
         report_tab5()
 
 
