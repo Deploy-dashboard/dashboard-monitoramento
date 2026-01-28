@@ -618,6 +618,8 @@ def report_tab4():
 def report_tab5():
 
     arquivo = 'progresso.csv'
+    
+    st.session_state['active_tab'] = 'Tab 5'
 
     if 'df' not in st.session_state:
         df = pd.read_csv(arquivo)
@@ -642,18 +644,30 @@ def report_tab5():
         df.loc[mask, "subprograma"].astype(str).map(mapa_sub)
     )
 
-    progresso = st.data_editor(
-        df,
-        num_rows="dynamic",
-        column_config={
-            "frop1": st.column_config.DateColumn(format="DD/MM/YYYY"),
-            "frop2": st.column_config.DateColumn(format="DD/MM/YYYY"),
-            "frop3": st.column_config.DateColumn(format="DD/MM/YYYY"),
-            "verificação": st.column_config.DateColumn(format="DD/MM/YYYY"),
-        }
-    )
 
-    if st.button("Salvar Alterações"):
+    with st.form(key='tab5'):
+        progresso = st.data_editor(
+            df,
+            num_rows="dynamic",
+            column_config={
+                "frop1": st.column_config.DateColumn(format="DD/MM/YYYY"),
+                "frop2": st.column_config.DateColumn(format="DD/MM/YYYY"),
+                "frop3": st.column_config.DateColumn(format="DD/MM/YYYY"),
+                "verificação": st.column_config.DateColumn(format="DD/MM/YYYY"),
+            }
+        )
+
+        # nova_coluna = st.text_input("Adicionar nova coluna")
+        # if nova_coluna not in st.session_state.df.columns:
+        #     st.session_state.df[nova_coluna] = None 
+        #     st.rerun()
+        # else:
+        #     st.warning("coluna já existe!")
+
+        submitted = st.form_submit_button("Salvar Alterações")
+        
+
+    if submitted:
         st.session_state.df = progresso
         st.session_state.df.to_csv('progresso.csv', index=False)
         st.success("Dados atualizados com sucesso!")
@@ -690,7 +704,7 @@ def dashboard():
     
     with tab4:
         st.subheader("Datas das tarefas correspondentes a cada subprograma")
-        st.text('Adicione as datas de término de cada tarefa, também é possível adicionar novas linhas e colunas.')
+        st.text('Adicione as datas de término de cada tarefa, também é possível adicionar novas linhas diretamente na tabela e colunas clicando no ícone superior esquerdo da página.')
         report_tab5()
 
 
