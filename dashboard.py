@@ -4,6 +4,7 @@ import streamlit as st
 import pandas as pd
 import requests
 import plotly.graph_objects as go
+import plotly.express as px
 from datetime import date
 
 st.set_page_config(page_title="Dashboard", layout="wide", page_icon="images\\icon.png")
@@ -617,7 +618,141 @@ def report_tab4():
 
 def report_tab5():
 
-    st.subheader("")       
+    arquivo = 'progresso.csv'
+    
+    st.session_state['active_tab'] = 'Tab 5'
+
+    if 'df' not in st.session_state:
+        df = pd.DataFrame(pd.read_csv(arquivo))
+
+        colunas_data = df.columns[2:]
+        for col in colunas_data:
+            df[col] = pd.to_datetime(df[col], errors='coerce')
+
+        st.session_state.df = df
+
+    df = st.session_state.df.copy()
+
+    for sp in lista_num_sp:
+        if (sp != "null") and (int(sp) not in df["subprograma"].values):
+            df.loc[len(df), 'subprograma'] = int(sp)
+
+    mapa_sub = {s.split(" - ")[0]: " - ".join(s.split(" - ")[1:]) for s in lista_sp if s != "Todos"}
+
+    mask = df["nome"].isna()
+    df.loc[mask, "nome"] = (df.loc[mask, "subprograma"].astype(str).map(mapa_sub))
+
+    column_configs = {}
+
+    for col in df.columns[2:]:
+        column_configs[col] = st.column_config.DateColumn(col,format="DD/MM/YYYY")
+
+    with st.form(key='tab5'):
+
+        progresso = st.data_editor(
+            df,
+            num_rows="dynamic",
+            column_config=column_configs)
+
+        nova_coluna = st.text_input("Adicionar nova coluna de tarefas")
+        submitted = st.form_submit_button("Salvar Alterações")
+        
+
+    if submitted:
+        df_final = progresso.copy()
+        if nova_coluna:
+            nova_coluna = nova_coluna.strip()
+
+            if nova_coluna not in df_final.columns:
+                df_final[nova_coluna] = pd.NaT
+                df_final[nova_coluna] = df_final[nova_coluna].astype("datetime64[ns]")
+                st.success("Dados atualizados com sucesso!")
+            else:
+                st.warning("Coluna já existe!")
+
+        st.session_state.df = df_final
+        df_final.to_csv(arquivo, index=False)
+        st.rerun()
+
+
+    colunas_tarefas = st.session_state.df.columns[2:]
+    linhas = []
+
+    for _, row in st.session_state.df.iterrows():
+        for tarefa in colunas_tarefas:
+            data_termino = row[tarefa]
+
+            if pd.notna(data_termino):
+                linhas.append(
+                    dict(
+                        Projeto=row['nome'],
+                        Tarefa=tarefa,
+                        ID=f"{row['nome']}|{tarefa}",
+                        Data=data_termino,
+                        concluida=False,
+                        Size=45
+                    )
+                )
+
+    df_marcos = pd.DataFrame(linhas)
+
+    if "tarefas_concluidas" not in st.session_state:
+        st.session_state.tarefas_concluidas = []
+
+    st.markdown("### Marcar tarefas como concluídas")
+
+    selecionadas = st.multiselect(
+        "Selecione as tarefas concluídas",
+        options=df_marcos["ID"],
+        format_func=lambda x: x.replace("|", " - "),
+        default=st.session_state.tarefas_concluidas
+    )
+
+    st.session_state.tarefas_concluidas = selecionadas
+
+    df_marcos["concluida"] = df_marcos["ID"].isin(
+        st.session_state.tarefas_concluidas
+    )
+
+    df_marcos["Status"] = df_marcos["concluida"].map(
+        {True: "Concluída", False: "Pendente"}
+    )
+
+    fig = px.scatter(
+        df_marcos,
+        x="Data",
+        y="Projeto",
+        color="Status",
+        text="Tarefa",
+        size="Size",
+        size_max=45,
+        color_discrete_map={
+            "Concluída": "green",
+            "Pendente": "gray"
+        }
+    )
+
+    fig.update_xaxes(
+        dtick="M1",                 
+        tickformat="%m/%Y",         
+        ticklabelmode="period",     
+        showgrid=True
+    )
+
+    fig.update_traces(
+        textposition="middle center",
+        marker=dict(opacity=0.9),
+        textfont=dict(size=10, color="white")
+    )
+
+    fig.update_layout(
+        xaxis_title="Mês/ano",
+        yaxis_title="Projeto",
+        height=650
+    )
+
+
+    st.plotly_chart(fig, use_container_width=True)
 
 
 def dashboard():
@@ -645,7 +780,8 @@ def dashboard():
 
     
     with tab4:
-        st.header("Evolução")
+        st.subheader("Datas das tarefas correspondentes a cada subprograma")
+        st.text('Adicione as datas de término de cada tarefa, também é possível adicionar novas linhas diretamente na tabela e colunas pelo formulário abaixo')
         report_tab5()
 
 
