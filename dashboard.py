@@ -2,7 +2,7 @@ from io import BytesIO
 from client import Client
 import streamlit as st
 import pandas as pd
-import requests
+import requests, os
 import plotly.graph_objects as go
 import plotly.express as px
 from datetime import date
@@ -111,48 +111,6 @@ def report_tab1():
                 return 'yellow'
             else:
                 return 'green'
-            
-###################################################
-
-        # datas = pd.DataFrame(pd.read_csv("datas.csv"))
-        # labels1 = datas["subprograma"]
-        # processados1 = df["% de registros processados"]
-        # colors = [get_color(v) for v in processados1]
-
-        # fig = go.Figure()
-
-        # fig.add_trace(go.Bar(
-        #     x=processados1,   
-        #     y=labels1,        
-        #     name="Processados",
-        #     marker_color=colors,
-        #     orientation='h',  
-        #     offsetgroup=1
-        # ))
-
-        # fig.update_layout(
-        #     height=800,
-        #     title="Registros processados por subprograma:",
-        #     xaxis_title="Registros processados (%)",   
-        #     yaxis_title="Subprograma",
-        #     barmode='group',
-        #     xaxis_tickangle=0,
-        #     bargap=0.15,
-        #     bargroupgap=0.05,
-        #     template="plotly_white",
-        #     legend=dict(
-        #         title='',
-        #         orientation='h',
-        #         yanchor='bottom',
-        #         y=1.05,
-        #         xanchor='right',
-        #         x=1,
-        #     )
-        # )
-
-        # st.plotly_chart(fig, width="stretch")
-
-###################################################
         
         labels1 = df["Cód. subprograma"].astype(str)+" - "+df["Nome subprograma"]  
         processados1 = df["% de registros processados"]
@@ -694,30 +652,99 @@ def report_tab5():
                     )
                 )
 
+
+    arquivo_aux = "tarefas.csv"
+
+    if os.path.exists(arquivo_aux):
+        df_aux = pd.read_csv(arquivo_aux)
+    else:
+        df_aux = pd.DataFrame(columns=["subprograma", "tarefas", "concluido"])
+
+    for col in ["subprograma", "tarefas", "concluido"]:
+        if col not in df_aux.columns:
+            df_aux[col] = []
+
+    df_aux["concluido"] = df_aux["concluido"].astype(bool)
+
     df_marcos = pd.DataFrame(linhas)
 
-    if "tarefas_concluidas" not in st.session_state:
-        st.session_state.tarefas_concluidas = []
-
-    st.markdown("### Marcar tarefas como concluídas")
-
-    selecionadas = st.multiselect(
-        "Selecione as tarefas concluídas",
-        options=df_marcos["ID"],
-        format_func=lambda x: x.replace("|", " - "),
-        default=st.session_state.tarefas_concluidas
+    novas_tarefas = df_marcos[["Projeto", "Tarefa"]].copy()
+    novas_tarefas.rename(
+        columns={
+            "Projeto": "subprograma",
+            "Tarefa": "tarefas"
+        },
+        inplace=True
     )
 
-    st.session_state.tarefas_concluidas = selecionadas
-
-    df_marcos["concluida"] = df_marcos["ID"].isin(
-        st.session_state.tarefas_concluidas
+    df_aux = novas_tarefas.merge(
+        df_aux,
+        on=["subprograma", "tarefas"],
+        how="left"
     )
 
-    df_marcos["Status"] = df_marcos["concluida"].map(
+    df_aux["concluido"] = df_aux["concluido"].fillna(False)
+
+    if "df_aux" not in st.session_state:
+        df_aux["concluido"] = False
+        st.session_state.df_aux = df_aux.copy()
+    else:
+        df_aux = st.session_state.df_aux
+
+
+    st.subheader("Quadro de Tarefas")
+
+    subs = df_aux["subprograma"].unique()
+
+    for i in range(0, len(subs), 3):
+
+        cols = st.columns(3)
+
+        for col, sub in zip(cols, subs[i:i+3]):
+
+            with col:
+
+                with st.container(border=True):
+
+                    st.markdown(f"{sub}")
+
+                    tarefas_sub = df_aux[df_aux["subprograma"] == sub]
+
+                    for _, row in tarefas_sub.iterrows():
+
+                        marcado = st.checkbox(
+                            row["tarefas"],
+                            value=row["concluido"],
+                            key=f"{sub}_{row['tarefas']}"
+                        )
+
+                        df_aux.loc[
+                            (df_aux["subprograma"] == sub) &
+                            (df_aux["tarefas"] == row["tarefas"]),
+                            "concluido"
+                        ] = marcado
+
+
+
+
+    df_marcos = df_marcos.merge(
+        df_aux,
+        left_on=["Projeto", "Tarefa"],
+        right_on=["subprograma", "tarefas"],
+        how="left"
+    )
+
+    df_marcos["concluido"] = df_marcos["concluido"].fillna(False)
+
+    df_marcos["Status"] = df_marcos["concluido"].map(
         {True: "Concluída", False: "Pendente"}
     )
 
+    if st.button("Salvar progresso das tarefas"):
+        # df_aux = df_aux.drop(columns='concluida')
+        df_aux.to_csv(arquivo_aux, index=False)
+        st.success("Progresso das tarefas salvo!")
+    
     fig = px.scatter(
         df_marcos,
         x="Data",
@@ -751,7 +778,7 @@ def report_tab5():
         height=650
     )
 
-
+    st.subheader("Gráfico de progresso")
     st.plotly_chart(fig, use_container_width=True)
 
 
