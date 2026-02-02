@@ -639,7 +639,6 @@ def report_tab5():
     for _, row in st.session_state.df.iterrows():
         for tarefa in colunas_tarefas:
             data_termino = row[tarefa]
-
             if pd.notna(data_termino):
                 linhas.append(
                     dict(
@@ -647,11 +646,9 @@ def report_tab5():
                         Tarefa=tarefa,
                         ID=f"{row['nome']}|{tarefa}",
                         Data=data_termino,
-                        concluida=False,
-                        Size=45
+                        # concluida=False,
                     )
                 )
-
 
     arquivo_aux = "tarefas.csv"
 
@@ -660,7 +657,7 @@ def report_tab5():
     else:
         df_aux = pd.DataFrame(columns=["subprograma", "tarefas", "concluido"])
 
-    for col in ["subprograma", "tarefas", "concluido"]:
+    for col in ['subprograma', 'tarefas', 'ID', 'Data', 'concluido', 'Status', 'size']:
         if col not in df_aux.columns:
             df_aux[col] = []
 
@@ -668,94 +665,80 @@ def report_tab5():
 
     df_marcos = pd.DataFrame(linhas)
 
-    novas_tarefas = df_marcos[["Projeto", "Tarefa"]].copy()
-    novas_tarefas.rename(
+    df_marcos.rename(
         columns={
             "Projeto": "subprograma",
-            "Tarefa": "tarefas"
+            "Tarefa": "tarefas",
         },
         inplace=True
     )
 
-    df_aux = novas_tarefas.merge(
+    df_aux = df_marcos.merge(
         df_aux,
         on=["subprograma", "tarefas"],
         how="left"
     )
 
+    df_aux.drop(columns=['ID_y', 'Data_y'], inplace=True)
+    df_aux.rename(columns={'ID_x':'ID', 'Data_x': 'Data'}, inplace=True)
     df_aux["concluido"] = df_aux["concluido"].fillna(False)
 
-    if "df_aux" not in st.session_state:
-        df_aux["concluido"] = False
-        st.session_state.df_aux = df_aux.copy()
-    else:
-        df_aux = st.session_state.df_aux
-
-
-    st.subheader("Quadro de Tarefas")
-
     subs = df_aux["subprograma"].unique()
+    
+    st.subheader("Quadro de Tarefas")
+    st.text("Marque as tarefas que já foram finalizadas")
+    with st.form(key="quadro_tarefas"):
+        for i in range(0, len(subs), 3):
 
-    for i in range(0, len(subs), 3):
+            cols = st.columns(3)
 
-        cols = st.columns(3)
+            for col, sub in zip(cols, subs[i:i+3]):
 
-        for col, sub in zip(cols, subs[i:i+3]):
+                with col:
 
-            with col:
+                    with st.container(border=True):
 
-                with st.container(border=True):
+                        st.markdown(f"{sub}")
 
-                    st.markdown(f"{sub}")
+                        tarefas_sub = df_aux[df_aux["subprograma"] == sub]
 
-                    tarefas_sub = df_aux[df_aux["subprograma"] == sub]
+                        for _, row in tarefas_sub.iterrows():
 
-                    for _, row in tarefas_sub.iterrows():
+                            marcado = st.checkbox(
+                                row["tarefas"],
+                                value=row["concluido"],
+                                key=f"{sub}_{row['tarefas']}"
+                            )
 
-                        marcado = st.checkbox(
-                            row["tarefas"],
-                            value=row["concluido"],
-                            key=f"{sub}_{row['tarefas']}"
-                        )
+                            df_aux.loc[
+                                (df_aux["subprograma"] == sub) &
+                                (df_aux["tarefas"] == row["tarefas"]),
+                                "concluido"
+                            ] = marcado
+        enviado = st.form_submit_button("Salvar progresso das tarefas")
 
-                        df_aux.loc[
-                            (df_aux["subprograma"] == sub) &
-                            (df_aux["tarefas"] == row["tarefas"]),
-                            "concluido"
-                        ] = marcado
+    df_aux["Status"] = df_aux["concluido"].map({True: 'Concluído', False: 'Pendente'})
+    df_aux['size'] = int(45)   
 
+    hoje = pd.Timestamp(date.today())
+    df_aux.loc[(df_aux["Status"] == "Pendente") & (df_aux["Data"] == hoje),"Status"] = "Pendente hoje"
 
-
-
-    df_marcos = df_marcos.merge(
-        df_aux,
-        left_on=["Projeto", "Tarefa"],
-        right_on=["subprograma", "tarefas"],
-        how="left"
-    )
-
-    df_marcos["concluido"] = df_marcos["concluido"].fillna(False)
-
-    df_marcos["Status"] = df_marcos["concluido"].map(
-        {True: "Concluída", False: "Pendente"}
-    )
-
-    if st.button("Salvar progresso das tarefas"):
-        # df_aux = df_aux.drop(columns='concluida')
+    if enviado:
         df_aux.to_csv(arquivo_aux, index=False)
         st.success("Progresso das tarefas salvo!")
-    
+
     fig = px.scatter(
-        df_marcos,
+        df_aux,
         x="Data",
-        y="Projeto",
+        y="subprograma",
         color="Status",
-        text="Tarefa",
-        size="Size",
+        text="tarefas",
+        size="size",
         size_max=45,
         color_discrete_map={
-            "Concluída": "green",
-            "Pendente": "gray"
+            "Concluído": "green",
+            "Pendente": "gray",
+            "Pendente hoje" : "yellow"
         }
     )
 
@@ -774,8 +757,8 @@ def report_tab5():
 
     fig.update_layout(
         xaxis_title="Mês/ano",
-        yaxis_title="Projeto",
-        height=650
+        yaxis_title="Subprograma",
+        height=1000
     )
 
     st.subheader("Gráfico de progresso")
