@@ -721,7 +721,8 @@ def report_tab5():
     df_aux['size'] = int(45)   
 
     hoje = pd.Timestamp(date.today())
-    df_aux.loc[(df_aux["Status"] == "Pendente") & (df_aux["Data"] == hoje),"Status"] = "Pendente hoje"
+    df_aux.loc[(df_aux["Status"] == "Pendente") & (df_aux["Data"] == hoje),"Status"] = "Finaliza hoje"
+    df_aux.loc[(df_aux["Status"] == "Pendente") & (df_aux["Data"] < hoje), "Status"] = "Atrasado"
 
     if enviado:
         df_aux.to_csv(arquivo_aux, index=False)
@@ -738,7 +739,8 @@ def report_tab5():
         color_discrete_map={
             "Concluído": "green",
             "Pendente": "gray",
-            "Pendente hoje" : "yellow"
+            "Finaliza hoje": "yellow",
+            "Atrasado": "red"
         }
     )
 
@@ -762,6 +764,7 @@ def report_tab5():
     )
 
     st.subheader("Gráfico de progresso")
+    st.text("Acompanhe o progresso das tarefas referentes a cada subprograma")
     st.plotly_chart(fig, use_container_width=True)
 
 
