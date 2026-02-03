@@ -718,7 +718,7 @@ def report_tab5():
         enviado = st.form_submit_button("Salvar progresso das tarefas")
 
     df_aux["Status"] = df_aux["concluido"].map({True: 'Concluído', False: 'Pendente'})
-    df_aux['size'] = int(45)   
+    df_aux['size'] = int(5)   
 
     hoje = pd.Timestamp(date.today())
     df_aux.loc[(df_aux["Status"] == "Pendente") & (df_aux["Data"] == hoje),"Status"] = "Finaliza hoje"
@@ -735,7 +735,7 @@ def report_tab5():
         color="Status",
         text="tarefas",
         size="size",
-        size_max=45,
+        size_max=40,
         color_discrete_map={
             "Concluído": "green",
             "Pendente": "gray",
@@ -751,16 +751,28 @@ def report_tab5():
         showgrid=True
     )
 
+    fig.update_yaxes(
+
+    )
+
     fig.update_traces(
         textposition="middle center",
         marker=dict(opacity=0.9),
-        textfont=dict(size=10, color="white")
+        textfont=dict(size=15, color="white")
     )
 
     fig.update_layout(
-        xaxis_title="Mês/ano",
-        yaxis_title="Subprograma",
-        height=1000
+        xaxis_title=None,
+        yaxis_title=None,
+        height=1000,
+        legend=dict(
+            title='',
+            orientation='h',
+            yanchor='bottom',
+            y=1.05,
+            xanchor='right',
+            x=1,
+            )
     )
 
     st.subheader("Gráfico de progresso")
