@@ -728,9 +728,14 @@ def report_tab5():
         df_aux.to_csv(arquivo_aux, index=False)
         st.success("Progresso das tarefas salvo!")
 
+    df_aux = df_aux.sort_values(["subprograma", "Data"])
+
+    df_aux["x_linha"] = (df_aux.groupby("subprograma").cumcount())
+    max_nos = (df_aux.groupby("subprograma")["x_linha"].max().max())
+
     fig = px.scatter(
         df_aux,
-        x="Data",
+        x="x_linha",
         y="subprograma",
         color="Status",
         text="tarefas",
@@ -739,26 +744,25 @@ def report_tab5():
         color_discrete_map={
             "Concluído": "green",
             "Pendente": "gray",
-            "Finaliza hoje": "yellow",
+            "Finaliza hoje": "#DAA520",
             "Atrasado": "red"
         }
     )
 
     fig.update_xaxes(
-        dtick="M1",                 
-        tickformat="%m/%Y",         
-        ticklabelmode="period",     
-        showgrid=True
-    )
-
-    fig.update_yaxes(
-
+        range=[-0.5, max_nos + 0.5],
+        showticklabels=False,
+        title=None,
+        showgrid=False,
+        zeroline=False
     )
 
     fig.update_traces(
         textposition="middle center",
         marker=dict(opacity=0.9),
-        textfont=dict(size=15, color="white")
+        textfont=dict(size=15, color="white"),
+        hovertemplate="<b>%{text}</b><br>Data: %{customdata}<extra></extra>",
+        customdata=df_aux["Data"].dt.strftime("%d/%m/%Y")
     )
 
     fig.update_layout(
@@ -768,10 +772,12 @@ def report_tab5():
         legend=dict(
             title='',
             orientation='h',
-            yanchor='bottom',
-            y=1.05,
-            xanchor='right',
-            x=1,
+            xanchor='left',
+            yanchor='top',
+            y=1,
+            x=-0.2,
+            xref='paper',
+            yref='paper'
             )
     )
 
