@@ -718,7 +718,7 @@ def report_tab5():
         enviado = st.form_submit_button("Salvar progresso das tarefas")
 
     df_aux["Status"] = df_aux["concluido"].map({True: 'Concluído', False: 'Pendente'})
-    df_aux['size'] = int(45)   
+    df_aux['size'] = int(5)   
 
     hoje = pd.Timestamp(date.today())
     df_aux.loc[(df_aux["Status"] == "Pendente") & (df_aux["Data"] == hoje),"Status"] = "Finaliza hoje"
@@ -728,39 +728,57 @@ def report_tab5():
         df_aux.to_csv(arquivo_aux, index=False)
         st.success("Progresso das tarefas salvo!")
 
+    df_aux = df_aux.sort_values(["subprograma", "Data"])
+
+    df_aux["x_linha"] = (df_aux.groupby("subprograma").cumcount())
+    max_nos = (df_aux.groupby("subprograma")["x_linha"].max().max())
+
     fig = px.scatter(
         df_aux,
-        x="Data",
+        x="x_linha",
         y="subprograma",
         color="Status",
         text="tarefas",
         size="size",
-        size_max=45,
+        size_max=40,
         color_discrete_map={
             "Concluído": "green",
             "Pendente": "gray",
-            "Finaliza hoje": "yellow",
+            "Finaliza hoje": "#DAA520",
             "Atrasado": "red"
         }
     )
 
     fig.update_xaxes(
-        dtick="M1",                 
-        tickformat="%m/%Y",         
-        ticklabelmode="period",     
-        showgrid=True
+        range=[-0.5, max_nos + 0.5],
+        showticklabels=False,
+        title=None,
+        showgrid=False,
+        zeroline=False
     )
 
     fig.update_traces(
         textposition="middle center",
         marker=dict(opacity=0.9),
-        textfont=dict(size=10, color="white")
+        textfont=dict(size=15, color="white"),
+        hovertemplate="<b>%{text}</b><br>Data: %{customdata}<extra></extra>",
+        customdata=df_aux["Data"].dt.strftime("%d/%m/%Y")
     )
 
     fig.update_layout(
-        xaxis_title="Mês/ano",
-        yaxis_title="Subprograma",
-        height=1000
+        xaxis_title=None,
+        yaxis_title=None,
+        height=1000,
+        legend=dict(
+            title='',
+            orientation='h',
+            xanchor='left',
+            yanchor='top',
+            y=1,
+            x=-0.2,
+            xref='paper',
+            yref='paper'
+            )
     )
 
     st.subheader("Gráfico de progresso")
