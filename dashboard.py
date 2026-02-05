@@ -629,6 +629,8 @@ def report_tab5():
                 st.warning("Coluna já existe!")
 
         st.session_state.df = df_final
+        df_final["subprograma"] = df_final["subprograma"].astype(int)
+        df_final = df_final.sort_values(by='subprograma')
         df_final.to_csv(arquivo, index=False)
         st.rerun()
 
@@ -639,17 +641,16 @@ def report_tab5():
     for _, row in st.session_state.df.iterrows():
         for tarefa in colunas_tarefas:
             data_termino = row[tarefa]
-            if pd.notna(data_termino):
-                linhas.append(
-                    dict(
-                        Projeto=row['nome'],
-                        Tarefa=tarefa,
-                        ID=f"{row['nome']}|{tarefa}",
-                        Data=data_termino,
-                        # concluida=False,
-                    )
+            linhas.append(
+                dict(
+                    Projeto=row['nome'],
+                    Tarefa=tarefa,
+                    ID=f"{row['nome']}|{tarefa}",
+                    Data=data_termino,
+                    # concluida=False,
                 )
-
+            )
+    
     arquivo_aux = "tarefas.csv"
 
     if os.path.exists(arquivo_aux):
@@ -683,38 +684,39 @@ def report_tab5():
     df_aux.rename(columns={'ID_x':'ID', 'Data_x': 'Data'}, inplace=True)
     df_aux["concluido"] = df_aux["concluido"].fillna(False)
 
-    subs = df_aux["subprograma"].unique()
+    df["subprograma"] = df["subprograma"].astype(int)
+
+    subs = (df["subprograma"].astype(str) + " -  " + df["nome"]).unique()
     
     st.subheader("Quadro de Tarefas")
-    st.text("Marque as tarefas que já foram finalizadas")
+
+    select_sub = st.selectbox("Escolha um subprograma", options=subs)
+
     with st.form(key="quadro_tarefas"):
-        for i in range(0, len(subs), 3):
 
-            cols = st.columns(3)
+        col = st.columns(1)[0]
 
-            for col, sub in zip(cols, subs[i:i+3]):
+        with col:
+            with st.container(border=True):
 
-                with col:
+                st.markdown(f"**{select_sub}**")
 
-                    with st.container(border=True):
+                tarefas_sub = df_aux[df_aux["subprograma"] == str(select_sub[8:])]
 
-                        st.markdown(f"{sub}")
+                for _, row in tarefas_sub.iterrows():
 
-                        tarefas_sub = df_aux[df_aux["subprograma"] == sub]
+                    marcado = st.checkbox(
+                        row["tarefas"],
+                        value=row["concluido"],
+                        key=f"{select_sub}_{row['tarefas']}"
+                    )
 
-                        for _, row in tarefas_sub.iterrows():
+                    df_aux.loc[
+                        (df_aux["subprograma"] == select_sub) &
+                        (df_aux["tarefas"] == row["tarefas"]),
+                        "concluido"
+                    ] = marcado
 
-                            marcado = st.checkbox(
-                                row["tarefas"],
-                                value=row["concluido"],
-                                key=f"{sub}_{row['tarefas']}"
-                            )
-
-                            df_aux.loc[
-                                (df_aux["subprograma"] == sub) &
-                                (df_aux["tarefas"] == row["tarefas"]),
-                                "concluido"
-                            ] = marcado
         enviado = st.form_submit_button("Salvar progresso das tarefas")
 
     df_aux["Status"] = df_aux["concluido"].map({True: 'Concluído', False: 'Pendente'})
@@ -728,47 +730,85 @@ def report_tab5():
         df_aux.to_csv(arquivo_aux, index=False)
         st.success("Progresso das tarefas salvo!")
 
-    df_aux = df_aux.sort_values(["subprograma", "Data"])
+    df_aux["ordem_tarefa"] = (df_aux.groupby("subprograma")["tarefas"].transform(lambda x: pd.factorize(x)[0]))
+    df_aux["id_tarefa"] = (
+    df_aux["subprograma"].astype(str) + " | " + df_aux["tarefas"])
 
-    df_aux["x_linha"] = (df_aux.groupby("subprograma").cumcount())
-    max_nos = (df_aux.groupby("subprograma")["x_linha"].max().max())
+    df_aux["x_linha"] = (df_aux.groupby("subprograma")["tarefas"].transform(lambda x: pd.factorize(x, sort=True)[0]))
+
+    max_nos = df_aux["x_linha"].max()
+    ordem_y = sorted(df_aux["subprograma"].unique())
+
+    df_aux["Data_hover"] = df_aux["Data"].dt.strftime("%d/%m/%Y")
+    df_aux["Data_hover"] = df_aux["Data_hover"].fillna("Sem data definida")
 
     fig = px.scatter(
         df_aux,
         x="x_linha",
         y="subprograma",
+        category_orders={
+            "subprograma": ordem_y
+        },
         color="Status",
-        text="tarefas",
         size="size",
-        size_max=40,
+        size_max=19,
         color_discrete_map={
             "Concluído": "green",
             "Pendente": "gray",
-            "Finaliza hoje": "#DAA520",
+            "Finaliza hoje": "yellow",
             "Atrasado": "red"
         }
     )
 
+
     fig.update_xaxes(
         range=[-0.5, max_nos + 0.5],
-        showticklabels=False,
-        title=None,
+        tickmode="array",
+        tickvals=sorted(df_aux["x_linha"].unique()),
+        ticktext=(
+            df_aux
+            .sort_values("x_linha")
+            .drop_duplicates("x_linha")["tarefas"]
+        ),
+        tickangle=90,
         showgrid=False,
         zeroline=False
     )
 
     fig.update_traces(
-        textposition="middle center",
         marker=dict(opacity=0.9),
-        textfont=dict(size=15, color="white"),
-        hovertemplate="<b>%{text}</b><br>Data: %{customdata}<extra></extra>",
-        customdata=df_aux["Data"].dt.strftime("%d/%m/%Y")
+        hovertemplate=(
+            "<b>Tarefa:</b> %{customdata[0]}<br>"
+            "<b>Data:</b> %{customdata[1]}"
+            "<extra></extra>"
+        ),
+        customdata=list(
+            zip(
+                df_aux["tarefas"],
+                df_aux["Data_hover"]
+            )
+        )
+    )
+
+    fig.update_traces(
+        marker=dict(opacity=0.9),
+        hovertemplate=(
+            "<b>Tarefa:</b> %{customdata[0]}<br>"
+            "<b>Data:</b> %{customdata[1]}"
+            "<extra></extra>"
+        ),
+        customdata=list(
+            zip(
+                df_aux["tarefas"],
+                df_aux["Data_hover"]
+            )
+        )
     )
 
     fig.update_layout(
         xaxis_title=None,
         yaxis_title=None,
-        height=1000,
+        height=1200,
         legend=dict(
             title='',
             orientation='h',
@@ -778,7 +818,7 @@ def report_tab5():
             x=-0.2,
             xref='paper',
             yref='paper'
-            )
+        )
     )
 
     st.subheader("Gráfico de progresso")
