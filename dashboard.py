@@ -424,155 +424,122 @@ def report_tab3():
 
    
 def report_tab4():
-   
-    col1, col2, col3 = st.columns([1.5, 1, 1])
 
-    with col1:
-        
-        with st.form(key="tab4"):
-            st.markdown("**Adicione as datas referentes ao início e término dos subprogramas:**")
-            lista_sp.pop(0)
-            select_sp = st.selectbox("Subprograma", options=lista_sp, key="sp_tab4")
-            sp = num_sp(select_sp)
-            inicio = st.date_input("Data de início", format="DD/MM/YYYY")
-            fim = st.date_input("Data de término", format="DD/MM/YYYY")
-            submitted = st.form_submit_button("Adicionar / Atualizar datas")
+    arquivo = "datas.csv"
+    hoje = pd.Timestamp(date.today())
 
-        hoje = pd.Timestamp(date.today())
-        arquivo = "datas.csv"
+    if "datas" not in st.session_state:
         datas = pd.read_csv(arquivo)
-
         datas["inicio"] = pd.to_datetime(datas["inicio"], errors="coerce")
         datas["fim"] = pd.to_datetime(datas["fim"], errors="coerce")
+        st.session_state.datas = datas
 
-        def sol(sp):
-            url = f'http://10.0.10.22:41112/gw/reports/generate_report_xls/CAED7027-1707:2025/9/ID_FONTE_DADO="null"&CD_PROGRAMA={sp}'
-            response = requests.get(url)
-            content = BytesIO(response.content)
-            return pd.DataFrame(pd.read_excel(content))
+    datas = st.session_state.datas
 
-        df = sol(sp)
-        df_base = sol("null")
+    def sol(sp):
+        url = f'http://10.0.10.22:41112/gw/reports/generate_report_xls/CAED7027-1707:2025/9/ID_FONTE_DADO="null"&CD_PROGRAMA={sp}'
+        response = requests.get(url)
+        return pd.read_excel(BytesIO(response.content))
 
-        total_previsto = df.loc[df["Cód. subprograma"] == sp, "Total de registros previstos"].sum()
+    df_base = sol("null")
 
-        mapa_sub = { s.split(" - ")[0]: " - ".join(s.split(" - ")[1:]) for s in lista_sp if s != "Todos"}
+    with st.form("form_tab4"):
 
-        if "nome" not in datas.columns:
-            datas.insert(1, "nome", datas["subprograma"].astype(str).map(mapa_sub))
+        datas_editadas = st.data_editor(
+            datas,
+            num_rows="dynamic",
+            disabled=[
+                "nome", "previstos", "digitalizados",
+                "diferenca", "media dia",
+                "esperado hoje", "% digitalizados"
+            ],
+            column_config={
+                "previstos": st.column_config.NumberColumn(format="localized"),
+                "digitalizados": st.column_config.NumberColumn(format="localized"),
+                "inicio": st.column_config.DateColumn(format="DD/MM/YYYY"),
+                "fim": st.column_config.DateColumn(format="DD/MM/YYYY"),
+                "diferenca": None,
+                "media dia": None,
+                "esperado hoje": st.column_config.NumberColumn(format="localized"),
+                "cor": None
+            },
+            hide_index=True
+        )
 
-        previstos = df.loc[df["Cód. subprograma"] == sp, "Total de registros previstos"].iloc[0]
-        datas.loc[datas["subprograma"] == sp,"previstos"] = previstos
+        salvar = st.form_submit_button("Salvar alterações")
 
-        digitalizados = df.loc[df["Cód. subprograma"] == sp, "Total de registros digitalizados"].iloc[0]
-        datas.loc[datas["subprograma"] == sp,"digitalizados"] = digitalizados
+    if salvar:
 
-        df.insert(loc=3, column="% de registros digitalizados", value=((pd.to_numeric(df["Total de registros digitalizados"]) / pd.to_numeric(df["Total de registros previstos"]))*100).round(2))
-        digitalizados_p = df.loc[df["Cód. subprograma"] == sp, "% de registros digitalizados"].iloc[0]
-        datas.loc[datas["subprograma"] == sp,"% digitalizados"] = digitalizados_p
-        
-        datas = datas.merge(df_base[['Cód. subprograma', 'Total de registros digitalizados']], left_on='subprograma', right_on='Cód. subprograma', how='left')
-        datas.drop(columns='Cód. subprograma', inplace=True)
+        datas_editadas = datas_editadas.dropna(subset=["subprograma"])
 
-        datas = datas.merge(df_base[['Cód. subprograma', 'Total de registros previstos']], left_on='subprograma', right_on='Cód. subprograma', how='left')
-        datas["digitalizados"] = datas["Total de registros digitalizados"]
-        datas["previstos"] = datas["Total de registros previstos"]
-        datas.drop(columns=['Total de registros previstos', "Total de registros digitalizados", 'Cód. subprograma'], inplace=True)
-        datas["% digitalizados"] = ((datas["digitalizados"] / datas["previstos"]) * 100).round(2)
+        datas_editadas = datas_editadas.merge(
+            df_base[
+                ["Cód. subprograma",
+                 "Total de registros previstos",
+                 "Total de registros digitalizados"]
+            ],
+            left_on="subprograma",
+            right_on="Cód. subprograma",
+            how="left"
+        )
 
-        datas["esperado hoje"] = (datas["media dia"] * (hoje - datas["inicio"]).dt.days).round(0)
-        datas["esperado hoje"] = datas["esperado hoje"].clip(lower=0, upper=datas["previstos"])
+        datas_editadas["previstos"] = datas_editadas["Total de registros previstos"]
+        datas_editadas["digitalizados"] = datas_editadas["Total de registros digitalizados"]
 
-        if submitted:
+        datas_editadas.drop(
+            columns=[
+                "Cód. subprograma",
+                "Total de registros previstos",
+                "Total de registros digitalizados"
+            ],
+            inplace=True
+        )
 
-            if sp not in datas["subprograma"].values:
-                nova_linha = {
-                    "subprograma": sp,
-                    "nome": mapa_sub.get(str(sp)),
-                    "inicio": pd.NaT,
-                    "fim": pd.NaT,
-                    "diferenca": None,
-                    "media dia": None,
-                    "esperado hoje": None,
-                    "previstos": None,
-                    "digitalizados": None,
-                    "% digitalizados": None
-                }
-                datas = pd.concat([datas, pd.DataFrame([nova_linha])], ignore_index=True)
+        datas_editadas["% digitalizados"] = (datas_editadas["digitalizados"] / datas_editadas["previstos"] * 100).round(2)
 
-            mask = datas["subprograma"] == sp  
-            inicio = pd.to_datetime(inicio)
-            fim = pd.to_datetime(fim)
+        mask = datas_editadas["inicio"].notna() & datas_editadas["fim"].notna()
 
-            datas.loc[mask, "inicio"] = inicio
-            datas.loc[mask, "fim"] = fim
+        datas_editadas.loc[mask, "diferenca"] = (datas_editadas.loc[mask, "fim"] - datas_editadas.loc[mask, "inicio"]).dt.days.clip(lower=1)
 
-            diferenca = (datas.loc[mask, "fim"] - datas.loc[mask, "inicio"]).dt.days.clip(lower=1)
-            datas.loc[mask, "diferenca"] = diferenca
+        datas_editadas.loc[mask, "media dia"] = (datas_editadas.loc[mask, "previstos"] / datas_editadas.loc[mask, "diferenca"]).round(0)
 
-            media_dia = (total_previsto / diferenca).round(0)
-            datas.loc[mask, "media dia"] = media_dia
+        dias_passados = (hoje - datas_editadas["inicio"]).dt.days.clip(lower=0)
 
-            dias_passados = (hoje - datas.loc[mask, "inicio"]).dt.days.clip(lower=0)
+        datas_editadas["esperado hoje"] = (datas_editadas["media dia"] * dias_passados).clip(lower=0, upper=datas_editadas["previstos"]).round(0)
 
-            esperado_hoje = media_dia * dias_passados
-            datas.loc[mask, "esperado hoje"] = esperado_hoje.clip(lower=0, upper=datas.loc[mask, "previstos"])
-            datas["esperado hoje"] = datas["esperado hoje"].round(0)
-                      
-            datas = datas[datas["subprograma"].isin(lista_num_sp)]
-            datas.to_csv(arquivo, index=False)
+        st.session_state.datas = datas_editadas.copy()
+        datas_editadas.to_csv(arquivo, index=False)
 
-            st.success("Datas adicionadas!")
-    
-    datas = datas.sort_values(by="subprograma")
-    st.dataframe(datas, hide_index=True, column_config={
-        "previstos": st.column_config.NumberColumn(format="localized"),
-        "inicio": st.column_config.DateColumn(format="DD/MM/YYYY"),
-        "fim": st.column_config.DateColumn(format="DD/MM/YYYY"),
-        "diferenca": None,
-        "media dia": None,
-        "digitalizados": st.column_config.NumberColumn(format="localized"),
-        "esperado hoje": st.column_config.NumberColumn(format="localized"),
-        "% digitalizados":None
-    })
+        st.success("Alterações salvas com sucesso!")
+        st.rerun()
 
-    labels = datas["subprograma"].astype(str)+" - "+datas["nome"]  
-    digitalizados = datas["% digitalizados"]
+    datas = st.session_state.datas
+
+    labels = datas["subprograma"].astype(str) + " - " + datas["nome"]
+
     datas['cor'] = datas.apply(lambda row: 'green' if ((row['digitalizados'] > row['esperado hoje']) or (row['digitalizados'] == row['esperado hoje']) or (row['digitalizados'] > (row['esperado hoje'] * 0.9))) else 'red', axis=1)
-    colors = datas["cor"]
 
     fig = go.Figure()
 
     fig.add_trace(go.Bar(
-        x=digitalizados,   
-        y=labels,        
-        name="Digitalizados",
-        marker_color=colors,
-        orientation='h',  
-        offsetgroup=1
+        x=datas["% digitalizados"],
+        y=labels,
+        orientation="h",
+        marker_color=datas["cor"],
+        name="Digitalizados"
     ))
 
     fig.update_layout(
         height=800,
-        title="Verificação de registros digitalizados por subprograma:",
-        xaxis_title="Registros digitalizados (%)",   
+        title="Verificação de registros digitalizados por subprograma",
+        xaxis_title="Registros digitalizados (%)",
         yaxis_title="Subprograma",
-        barmode='group',
-        xaxis_tickangle=0,
-        bargap=0.15,
-        bargroupgap=0.05,
-        template="plotly_white",
-        legend=dict(
-            title='',
-            orientation='h',
-            yanchor='bottom',
-            y=1.05,
-            xanchor='right',
-            x=1,
-        )
+        template="plotly_white"
     )
 
-    st.plotly_chart(fig, width="stretch")
+    st.plotly_chart(fig, use_container_width=True)
+
+
 
 def report_tab5():
 
@@ -730,11 +697,18 @@ def report_tab5():
         df_aux.to_csv(arquivo_aux, index=False)
         st.success("Progresso das tarefas salvo!")
 
-    df_aux["ordem_tarefa"] = (df_aux.groupby("subprograma")["tarefas"].transform(lambda x: pd.factorize(x)[0]))
-    df_aux["id_tarefa"] = (
-    df_aux["subprograma"].astype(str) + " | " + df_aux["tarefas"])
+    ordem_tarefas = (
+    df_aux["tarefas"]
+    .dropna()
+    .unique()
+    .tolist()
+    )
 
-    df_aux["x_linha"] = (df_aux.groupby("subprograma")["tarefas"].transform(lambda x: pd.factorize(x, sort=True)[0]))
+    mapa_tarefas = {tarefa: i for i, tarefa in enumerate(ordem_tarefas)}
+
+    df_aux["x_linha"] = df_aux["tarefas"].map(mapa_tarefas)
+
+    max_nos = len(ordem_tarefas) - 1
 
     max_nos = df_aux["x_linha"].max()
     ordem_y = sorted(df_aux["subprograma"].unique())
@@ -752,6 +726,14 @@ def report_tab5():
         color="Status",
         size="size",
         size_max=19,
+        hover_name="tarefas",
+        hover_data={
+            "tarefas": False,      
+            "Data_hover": True,
+            "x_linha": False,
+            "subprograma": True,
+            "Status": True
+        },
         color_discrete_map={
             "Concluído": "green",
             "Pendente": "gray",
@@ -764,51 +746,39 @@ def report_tab5():
     fig.update_xaxes(
         range=[-0.5, max_nos + 0.5],
         tickmode="array",
-        tickvals=sorted(df_aux["x_linha"].unique()),
-        ticktext=(
-            df_aux
-            .sort_values("x_linha")
-            .drop_duplicates("x_linha")["tarefas"]
-        ),
+        tickvals=list(mapa_tarefas.values()),
+        ticktext=list(mapa_tarefas.keys()),
         tickangle=90,
         showgrid=False,
         zeroline=False
     )
 
-    fig.update_traces(
-        marker=dict(opacity=0.9),
-        hovertemplate=(
-            "<b>Tarefa:</b> %{customdata[0]}<br>"
-            "<b>Data:</b> %{customdata[1]}"
-            "<extra></extra>"
-        ),
-        customdata=list(
-            zip(
-                df_aux["tarefas"],
-                df_aux["Data_hover"]
-            )
-        )
-    )
+    for trace in fig.data:
+        status = trace.name  
 
-    fig.update_traces(
-        marker=dict(opacity=0.9),
-        hovertemplate=(
+        df_trace = df_aux[df_aux["Status"] == status]
+
+        trace.customdata = df_trace[["tarefas", "Data_hover"]].values
+
+        trace.hovertemplate = (
             "<b>Tarefa:</b> %{customdata[0]}<br>"
             "<b>Data:</b> %{customdata[1]}"
             "<extra></extra>"
-        ),
-        customdata=list(
-            zip(
-                df_aux["tarefas"],
-                df_aux["Data_hover"]
-            )
         )
-    )
+
 
     fig.update_layout(
         xaxis_title=None,
         yaxis_title=None,
         height=1200,
+        hoverlabel=dict(
+            bgcolor="black",
+            font_size=16,      
+            font_family="Arial",
+            bordercolor="black",
+            align="left",
+            namelength=-1     
+        ),
         legend=dict(
             title='',
             orientation='h',
@@ -847,6 +817,7 @@ def dashboard():
     
     with tab3:
         st.header("Datas das digitalizações")
+        st.text("Adicione diretamente na tabela as datas de início e de término dos subprogramas")
         report_tab4()
 
     
