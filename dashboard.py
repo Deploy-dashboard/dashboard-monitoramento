@@ -817,7 +817,7 @@ def dashboard():
     
     with tab3:
         st.header("Datas das digitalizações")
-        st.subheader("Adicione diretamente na tabela as datas de início e de término dos subprogramas")
+        st.text("Adicione diretamente na tabela as datas de início e de término dos subprogramas")
         report_tab4()
 
     
