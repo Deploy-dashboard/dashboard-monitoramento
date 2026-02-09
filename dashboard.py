@@ -20,7 +20,7 @@ def login_page():
         username = st.text_input("Usuário")
         password = st.text_input("Senha", type="password")
 
-        if st.button("Entrar", use_container_width=True):
+        if st.button(":material/login: Entrar", use_container_width=True):
             client = Client()
             if client.login(username, password):
                 st.session_state.authenticated = True
@@ -194,6 +194,7 @@ def report_tab1():
 
 def report_tab2():
     
+    @st.cache_data(ttl=3600, show_spinner="Atualizando dados do sistema...")
     def sol(sp, inst):
         url = f'http://10.0.10.22:41112/gw/reports/generate_report_xls/CAED7028-1707:2025/9/ID_FONTE_DADO={"null"}&CD_PROGRAMA={sp}&DC_INSTRUMENTO_TIPO={inst}'
         response = requests.get(url)
@@ -306,6 +307,7 @@ def report_tab3():
     subprog = st.selectbox("Subprograma",options=lista_sp, key="subprog_tab3")
     ns = num_sp(subprog)
 
+    @st.cache_data(ttl=3600, show_spinner="Atualizando dados do sistema...")
     def sol(prog, subprog, solicit):
         s = f"http://10.0.10.22:41112/gw/reports/generate_report_xls/CAED7029-2307:2025/9/ID_FONTE_DADO={prog}&CD_PROGRAMA={subprog}&DC_SOLICITACAO={solicit}"
         response = requests.get(s)
@@ -399,7 +401,7 @@ def report_tab3():
 
     solicitacao = str(st.selectbox("Solicitacao", options=verif, key="solicitacao"))
 
-    st.button("Limpar filtro", on_click=limpar)
+    st.button(":material/delete: Limpar filtro", on_click=limpar)
 
     if solicitacao == "Todos":
         solicitacao = "null"
@@ -434,14 +436,52 @@ def report_tab4():
         datas["fim"] = pd.to_datetime(datas["fim"], errors="coerce")
         st.session_state.datas = datas
 
-    datas = st.session_state.datas
+    datas = st.session_state.datas.copy()
 
+    @st.cache_data(ttl=3600, show_spinner="Atualizando dados do sistema...")
     def sol(sp):
-        url = f'http://10.0.10.22:41112/gw/reports/generate_report_xls/CAED7027-1707:2025/9/ID_FONTE_DADO="null"&CD_PROGRAMA={sp}'
+        url = (f'http://10.0.10.22:41112/gw/reports/generate_report_xls/CAED7027-1707:2025/9/ID_FONTE_DADO="null"&CD_PROGRAMA={sp}')
         response = requests.get(url)
         return pd.read_excel(BytesIO(response.content))
 
     df_base = sol("null")
+
+    def recalcular_colunas(datas, df_base, hoje):
+
+        datas = datas.dropna(subset=["subprograma"])
+
+        datas = datas.merge(
+            df_base[
+                [
+                    "Cód. subprograma",
+                    "Total de registros previstos",
+                    "Total de registros digitalizados"
+                ]
+            ],
+            left_on="subprograma",
+            right_on="Cód. subprograma",
+            how="left"
+        )
+
+        datas["previstos"] = datas["Total de registros previstos"]
+        datas["digitalizados"] = datas["Total de registros digitalizados"]
+
+        datas.drop(columns=["Cód. subprograma", "Total de registros previstos", "Total de registros digitalizados"], inplace=True)
+
+        datas["% digitalizados"] = (datas["digitalizados"] / datas["previstos"] * 100).round(2)
+
+        mask = datas["inicio"].notna() & datas["fim"].notna()
+
+        datas.loc[mask, "diferenca"] = (datas.loc[mask, "fim"] - datas.loc[mask, "inicio"]).dt.days.clip(lower=1)
+
+        datas.loc[mask, "media dia"] = (datas.loc[mask, "previstos"] / datas.loc[mask, "diferenca"]).round(0)
+
+        dias_passados = (hoje - datas["inicio"]).dt.days.clip(lower=0)
+
+        datas["esperado hoje"] = (datas["media dia"] * dias_passados).clip(lower=0, upper=datas["previstos"]).round(0)
+
+        return datas
+
 
     with st.form("form_tab4"):
 
@@ -451,73 +491,39 @@ def report_tab4():
             disabled=[
                 "nome", "previstos", "digitalizados",
                 "diferenca", "media dia",
-                "esperado hoje", "% digitalizados"
+                "esperado hoje", "% digitalizados", "cor"
             ],
-            column_config={
-                "previstos": st.column_config.NumberColumn(format="localized"),
-                "digitalizados": st.column_config.NumberColumn(format="localized"),
-                "inicio": st.column_config.DateColumn(format="DD/MM/YYYY"),
-                "fim": st.column_config.DateColumn(format="DD/MM/YYYY"),
-                "diferenca": None,
-                "media dia": None,
-                "esperado hoje": st.column_config.NumberColumn(format="localized"),
-                "cor": None
-            },
+            column_config={ 
+                "previstos": st.column_config.NumberColumn(format="localized"), 
+                "digitalizados": st.column_config.NumberColumn(format="localized"), 
+                "inicio": st.column_config.DateColumn(format="DD/MM/YYYY"), 
+                "fim": st.column_config.DateColumn(format="DD/MM/YYYY"), 
+                "diferenca": None, 
+                "media dia": None, 
+                "esperado hoje": st.column_config.NumberColumn(format="localized"), 
+                "cor": None 
+                },  
             hide_index=True
         )
 
-        salvar = st.form_submit_button("Salvar alterações")
+        salvar = st.form_submit_button(":material/save:  Salvar alterações")
+
+    datas_calculadas = recalcular_colunas(datas_editadas.copy(), df_base, hoje)
+
+    st.session_state.datas = datas_calculadas
 
     if salvar:
-
-        datas_editadas = datas_editadas.dropna(subset=["subprograma"])
-
-        datas_editadas = datas_editadas.merge(
-            df_base[
-                ["Cód. subprograma",
-                 "Total de registros previstos",
-                 "Total de registros digitalizados"]
-            ],
-            left_on="subprograma",
-            right_on="Cód. subprograma",
-            how="left"
-        )
-
-        datas_editadas["previstos"] = datas_editadas["Total de registros previstos"]
-        datas_editadas["digitalizados"] = datas_editadas["Total de registros digitalizados"]
-
-        datas_editadas.drop(
-            columns=[
-                "Cód. subprograma",
-                "Total de registros previstos",
-                "Total de registros digitalizados"
-            ],
-            inplace=True
-        )
-
-        datas_editadas["% digitalizados"] = (datas_editadas["digitalizados"] / datas_editadas["previstos"] * 100).round(2)
-
-        mask = datas_editadas["inicio"].notna() & datas_editadas["fim"].notna()
-
-        datas_editadas.loc[mask, "diferenca"] = (datas_editadas.loc[mask, "fim"] - datas_editadas.loc[mask, "inicio"]).dt.days.clip(lower=1)
-
-        datas_editadas.loc[mask, "media dia"] = (datas_editadas.loc[mask, "previstos"] / datas_editadas.loc[mask, "diferenca"]).round(0)
-
-        dias_passados = (hoje - datas_editadas["inicio"]).dt.days.clip(lower=0)
-
-        datas_editadas["esperado hoje"] = (datas_editadas["media dia"] * dias_passados).clip(lower=0, upper=datas_editadas["previstos"]).round(0)
-
-        st.session_state.datas = datas_editadas.copy()
-        datas_editadas.to_csv(arquivo, index=False)
-
+        datas_calculadas.to_csv(arquivo, index=False)
         st.success("Alterações salvas com sucesso!")
-        st.rerun()
 
     datas = st.session_state.datas
 
+
     labels = datas["subprograma"].astype(str) + " - " + datas["nome"]
 
-    datas['cor'] = datas.apply(lambda row: 'green' if ((row['digitalizados'] > row['esperado hoje']) or (row['digitalizados'] == row['esperado hoje']) or (row['digitalizados'] > (row['esperado hoje'] * 0.9))) else 'red', axis=1)
+    datas["cor"] = datas.apply(
+        lambda row: "green"
+        if (row["digitalizados"] >= row["esperado hoje"] or row["digitalizados"] >= row["esperado hoje"] * 0.9) else "red", axis=1)
 
     fig = go.Figure()
 
@@ -580,7 +586,7 @@ def report_tab5():
             column_config=column_configs)
 
         nova_coluna = st.text_input("Adicionar nova coluna de tarefas")
-        submitted = st.form_submit_button("Salvar Alterações")
+        submitted = st.form_submit_button(":material/save: Salvar alterações")
         
 
     if submitted:
@@ -684,7 +690,7 @@ def report_tab5():
                         "concluido"
                     ] = marcado
 
-        enviado = st.form_submit_button("Salvar progresso das tarefas")
+        enviado = st.form_submit_button(":material/save: Salvar progresso das tarefas")
 
     df_aux["Status"] = df_aux["concluido"].map({True: 'Concluído', False: 'Pendente'})
     df_aux['size'] = int(5)   
@@ -758,11 +764,12 @@ def report_tab5():
 
         df_trace = df_aux[df_aux["Status"] == status]
 
-        trace.customdata = df_trace[["tarefas", "Data_hover"]].values
+        trace.customdata = df_trace[["subprograma", "tarefas", "Data_hover"]].values
 
         trace.hovertemplate = (
-            "<b>Tarefa:</b> %{customdata[0]}<br>"
-            "<b>Data:</b> %{customdata[1]}"
+            "<b>Subprograma:</b> %{customdata[0]}<br>"
+            "<b>Tarefa:</b> %{customdata[1]}<br>"
+            "<b>Data:</b> %{customdata[2]}"
             "<extra></extra>"
         )
 
