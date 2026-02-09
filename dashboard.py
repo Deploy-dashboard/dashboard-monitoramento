@@ -20,7 +20,7 @@ def login_page():
         username = st.text_input("Usuário")
         password = st.text_input("Senha", type="password")
 
-        if st.button("Entrar", use_container_width=True):
+        if st.button(":material/login: Entrar", use_container_width=True):
             client = Client()
             if client.login(username, password):
                 st.session_state.authenticated = True
@@ -401,7 +401,7 @@ def report_tab3():
 
     solicitacao = str(st.selectbox("Solicitacao", options=verif, key="solicitacao"))
 
-    st.button("Limpar filtro", on_click=limpar)
+    st.button(":material/delete: Limpar filtro", on_click=limpar)
 
     if solicitacao == "Todos":
         solicitacao = "null"
@@ -506,7 +506,7 @@ def report_tab4():
             hide_index=True
         )
 
-        salvar = st.form_submit_button("Salvar alterações")
+        salvar = st.form_submit_button(":material/save:  Salvar alterações")
 
     datas_calculadas = recalcular_colunas(datas_editadas.copy(), df_base, hoje)
 
@@ -586,7 +586,7 @@ def report_tab5():
             column_config=column_configs)
 
         nova_coluna = st.text_input("Adicionar nova coluna de tarefas")
-        submitted = st.form_submit_button("Salvar Alterações")
+        submitted = st.form_submit_button(":material/save: Salvar alterações")
         
 
     if submitted:
@@ -690,7 +690,7 @@ def report_tab5():
                         "concluido"
                     ] = marcado
 
-        enviado = st.form_submit_button("Salvar progresso das tarefas")
+        enviado = st.form_submit_button(":material/save: Salvar progresso das tarefas")
 
     df_aux["Status"] = df_aux["concluido"].map({True: 'Concluído', False: 'Pendente'})
     df_aux['size'] = int(5)   
