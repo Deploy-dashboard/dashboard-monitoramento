@@ -616,7 +616,7 @@ def report_tab5():
             data_termino = row[tarefa]
             linhas.append(
                 dict(
-                    Projeto=row['nome'],
+                    Projeto=str(row['subprograma']) + ' - ' + row['nome'],
                     Tarefa=tarefa,
                     ID=f"{row['nome']}|{tarefa}",
                     Data=data_termino,
@@ -626,40 +626,44 @@ def report_tab5():
     
     arquivo_aux = "tarefas.csv"
 
-    if os.path.exists(arquivo_aux):
-        df_aux = pd.read_csv(arquivo_aux)
-    else:
-        df_aux = pd.DataFrame(columns=["subprograma", "tarefas", "concluido"])
+    df_aux = pd.DataFrame(pd.read_csv(arquivo_aux))
+    df_aux["concluido"] = df_aux["concluido"].fillna(False).astype(bool)
 
-    for col in ['subprograma', 'tarefas', 'ID', 'Data', 'concluido', 'Status', 'size']:
-        if col not in df_aux.columns:
-            df_aux[col] = []
-
-    df_aux["concluido"] = df_aux["concluido"].astype(bool)
 
     df_marcos = pd.DataFrame(linhas)
-
     df_marcos.rename(
         columns={
-            "Projeto": "subprograma",
+            "Projeto": "nome",
             "Tarefa": "tarefas",
         },
         inplace=True
     )
 
+    # if {'ID_x', 'Data_x', 'ID_y', 'Data_y'}.issubset(df_aux.columns):
+    #     df_aux = df_aux.drop(columns={'ID_x', 'Data_x', 'ID_y', 'Data_y'})
+
     df_aux = df_marcos.merge(
         df_aux,
-        on=["subprograma", "tarefas"],
+        on=["nome", "tarefas"],
         how="left"
     )
+    df_aux["concluido"] = df_aux["concluido"].fillna(False).astype(bool)
 
-    df_aux.drop(columns=['ID_y', 'Data_y'], inplace=True)
-    df_aux.rename(columns={'ID_x':'ID', 'Data_x': 'Data'}, inplace=True)
-    df_aux["concluido"] = df_aux["concluido"].fillna(False)
+    # st.table(df_aux)
+
+    if 'Data_y' in df_aux.columns:
+        df_aux.drop(columns='Data_y', inplace=True)
+    if 'Data_x' in df_aux.columns:
+        df_aux.rename(columns={'Data_x': 'Data'}, inplace=True)
+    if 'ID_y' in df_aux.columns:
+        df_aux.drop(columns='ID_y', inplace=True)
+    if 'ID_x' in df_aux.columns:
+        df_aux.drop(columns='ID_x', inplace=True)
+
 
     df["subprograma"] = df["subprograma"].astype(int)
 
-    subs = (df["subprograma"].astype(str) + " -  " + df["nome"]).unique()
+    subs = (df["subprograma"].astype(str) + " - " + df["nome"]).unique()
     
     st.subheader("Quadro de Tarefas")
 
@@ -674,7 +678,7 @@ def report_tab5():
 
                 st.markdown(f"**{select_sub}**")
 
-                tarefas_sub = df_aux[df_aux["subprograma"] == str(select_sub[8:])]
+                tarefas_sub = df_aux[df_aux["nome"] == select_sub]
 
                 for _, row in tarefas_sub.iterrows():
 
@@ -685,7 +689,7 @@ def report_tab5():
                     )
 
                     df_aux.loc[
-                        (df_aux["subprograma"] == select_sub) &
+                        (df_aux["nome"] == select_sub) &
                         (df_aux["tarefas"] == row["tarefas"]),
                         "concluido"
                     ] = marcado
@@ -700,15 +704,11 @@ def report_tab5():
     df_aux.loc[(df_aux["Status"] == "Pendente") & (df_aux["Data"] < hoje), "Status"] = "Atrasado"
 
     if enviado:
-        df_aux.to_csv(arquivo_aux, index=False)
+        df_aux[["nome", "tarefas", "concluido"]].drop_duplicates().to_csv(arquivo_aux, index=False)
         st.success("Progresso das tarefas salvo!")
 
     ordem_tarefas = (
-    df_aux["tarefas"]
-    .dropna()
-    .unique()
-    .tolist()
-    )
+    df_aux["tarefas"].dropna().unique().tolist())
 
     mapa_tarefas = {tarefa: i for i, tarefa in enumerate(ordem_tarefas)}
 
@@ -717,15 +717,17 @@ def report_tab5():
     max_nos = len(ordem_tarefas) - 1
 
     max_nos = df_aux["x_linha"].max()
-    ordem_y = sorted(df_aux["subprograma"].unique())
+    ordem_y = sorted(df_aux["nome"].unique())
 
     df_aux["Data_hover"] = df_aux["Data"].dt.strftime("%d/%m/%Y")
     df_aux["Data_hover"] = df_aux["Data_hover"].fillna("Sem data definida")
+    
+    df_aux = df_aux.sort_values(by='nome',ascending=False)
 
     fig = px.scatter(
         df_aux,
         x="x_linha",
-        y="subprograma",
+        y="nome",
         category_orders={
             "subprograma": ordem_y
         },
@@ -737,7 +739,7 @@ def report_tab5():
             "tarefas": False,      
             "Data_hover": True,
             "x_linha": False,
-            "subprograma": True,
+            "nome": True,
             "Status": True
         },
         color_discrete_map={
@@ -748,10 +750,10 @@ def report_tab5():
         }
     )
 
-
     fig.update_xaxes(
         range=[-0.5, max_nos + 0.5],
         tickmode="array",
+        side='top',
         tickvals=list(mapa_tarefas.values()),
         ticktext=list(mapa_tarefas.keys()),
         tickangle=90,
@@ -764,7 +766,7 @@ def report_tab5():
 
         df_trace = df_aux[df_aux["Status"] == status]
 
-        trace.customdata = df_trace[["subprograma", "tarefas", "Data_hover"]].values
+        trace.customdata = df_trace[["nome", "tarefas", "Data_hover"]].values
 
         trace.hovertemplate = (
             "<b>Subprograma:</b> %{customdata[0]}<br>"
