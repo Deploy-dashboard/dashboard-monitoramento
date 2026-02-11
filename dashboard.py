@@ -6,6 +6,9 @@ import requests, os
 import plotly.graph_objects as go
 import plotly.express as px
 from datetime import date
+import warnings
+
+warnings.simplefilter("ignore")
 
 st.set_page_config(page_title="Dashboard", layout="wide", page_icon="images\\icon.png")
 
@@ -20,7 +23,7 @@ def login_page():
         username = st.text_input("Usuário")
         password = st.text_input("Senha", type="password")
 
-        if st.button(":material/login: Entrar", use_container_width=True):
+        if st.button(":material/login: Entrar", width='stretch'):
             client = Client()
             if client.login(username, password):
                 st.session_state.authenticated = True
@@ -543,7 +546,7 @@ def report_tab4():
         template="plotly_white"
     )
 
-    st.plotly_chart(fig, use_container_width=True)
+    st.plotly_chart(fig, width='stretch')
 
 
 
@@ -583,7 +586,8 @@ def report_tab5():
         progresso = st.data_editor(
             df,
             num_rows="dynamic",
-            column_config=column_configs)
+            column_config=column_configs,
+            key='editor_tab5')
 
         nova_coluna = st.text_input("Adicionar nova coluna de tarefas")
         submitted = st.form_submit_button(":material/save: Salvar alterações")
@@ -591,6 +595,14 @@ def report_tab5():
 
     if submitted:
         df_final = progresso.copy()
+        
+        if "editor_tab5" in st.session_state:
+            estado_editor = st.session_state["editor_tab5"]
+
+        if "columns" in estado_editor:
+            ordem_colunas = estado_editor["columns"]
+            df_final = df_final[ordem_colunas]
+
         if nova_coluna:
             nova_coluna = nova_coluna.strip()
 
@@ -619,7 +631,7 @@ def report_tab5():
                     Projeto=str(row['subprograma']) + ' - ' + row['nome'],
                     Tarefa=tarefa,
                     ID=f"{row['nome']}|{tarefa}",
-                    Data=data_termino,
+                    Data=data_termino
                     # concluida=False,
                 )
             )
@@ -639,17 +651,12 @@ def report_tab5():
         inplace=True
     )
 
-    # if {'ID_x', 'Data_x', 'ID_y', 'Data_y'}.issubset(df_aux.columns):
-    #     df_aux = df_aux.drop(columns={'ID_x', 'Data_x', 'ID_y', 'Data_y'})
-
     df_aux = df_marcos.merge(
         df_aux,
         on=["nome", "tarefas"],
         how="left"
     )
     df_aux["concluido"] = df_aux["concluido"].fillna(False).astype(bool)
-
-    # st.table(df_aux)
 
     if 'Data_y' in df_aux.columns:
         df_aux.drop(columns='Data_y', inplace=True)
@@ -717,19 +724,18 @@ def report_tab5():
     max_nos = len(ordem_tarefas) - 1
 
     max_nos = df_aux["x_linha"].max()
-    ordem_y = sorted(df_aux["nome"].unique())
-
+    ordem_y = df_aux["nome"].drop_duplicates().tolist()
     df_aux["Data_hover"] = df_aux["Data"].dt.strftime("%d/%m/%Y")
     df_aux["Data_hover"] = df_aux["Data_hover"].fillna("Sem data definida")
-    
-    df_aux = df_aux.sort_values(by='nome',ascending=False)
+
+    df_aux.sort_values(by='nome',ascending=False)
 
     fig = px.scatter(
         df_aux,
         x="x_linha",
         y="nome",
         category_orders={
-            "subprograma": ordem_y
+            "nome": ordem_y
         },
         color="Status",
         size="size",
@@ -802,7 +808,7 @@ def report_tab5():
 
     st.subheader("Gráfico de progresso")
     st.text("Acompanhe o progresso das tarefas referentes a cada subprograma")
-    st.plotly_chart(fig, use_container_width=True)
+    st.plotly_chart(fig, width='stretch')
 
 
 def dashboard():
