@@ -904,7 +904,6 @@ def dashboard():
     <style>
         button[data-baseweb="tab"] > div[data-testid="stMarkdownContainer"] > p {
             font-size: 15px; 
-            font-weight: bolder;
         }
     </style>
     '''
