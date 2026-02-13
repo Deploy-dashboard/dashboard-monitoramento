@@ -900,6 +900,15 @@ def report_tab6():
 def dashboard():
     
     st.title("Dashboards")
+    css = '''
+    <style>
+        button[data-baseweb="tab"] > div[data-testid="stMarkdownContainer"] > p {
+            font-size: 15px; 
+            font-weight: bolder;
+        }
+    </style>
+    '''
+    st.markdown(css, unsafe_allow_html=True)
     
     tab1, tab2, tab3, tab4, tab5 = st.tabs(["Processamento / Instrumento", "Verificação", "Datas digitalização", "Progresso Somativas", "Progresso Formativas"])
 
@@ -926,6 +935,7 @@ def dashboard():
         st.subheader("Datas das tarefas correspondentes a cada subprograma")
         st.text('Adicione as datas de término de cada tarefa, também é possível adicionar novas linhas diretamente na tabela e colunas pelo formulário abaixo')
         report_tab5()
+
 
     with tab5:
         st.subheader("Datas das tarefas correspondentes a cada subprograma")
