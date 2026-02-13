@@ -852,10 +852,10 @@ nome,tarefas,concluido
 2158 - BR UFJF - PISM 2026,rel_categroizacao,False
 2158 - BR UFJF - PISM 2026,certif_obj,False
 2158 - BR UFJF - PISM 2026,certif_ctx,False
-2158 - BR UFJF - PISM 2026,certif_nap,False
-2158 - BR UFJF - PISM 2026,certif_esc,False
-2158 - BR UFJF - PISM 2026,certif_sinc,False
-2158 - BR UFJF - PISM 2026,certif_co,False
+2158 - BR UFJF - PISM 2026,certif_nap,True
+2158 - BR UFJF - PISM 2026,certif_esc,True
+2158 - BR UFJF - PISM 2026,certif_sinc,True
+2158 - BR UFJF - PISM 2026,certif_co,True
 2158 - BR UFJF - PISM 2026,co_rel_pgto,False
 2158 - BR UFJF - PISM 2026,medida_obj,False
 2158 - BR UFJF - PISM 2026,medida_ctx,False
