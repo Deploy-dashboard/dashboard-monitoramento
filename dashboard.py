@@ -2,11 +2,10 @@ from io import BytesIO
 from client import Client
 import streamlit as st
 import pandas as pd
-import requests, os
+import requests, warnings
 import plotly.graph_objects as go
 import plotly.express as px
 from datetime import date
-import warnings
 
 warnings.simplefilter("ignore")
 
@@ -617,6 +616,7 @@ def criar_grafico_progresso(df_aux, ordem_tarefas, num_linhas):
         range=[-0.5, max_nos + 0.5],
         tickmode="array",
         side='top',
+        tickfont=dict(size=15),
         tickvals=list(mapa_tarefas.values()),
         ticktext=list(mapa_tarefas.keys()),
         tickangle=90,
@@ -875,7 +875,7 @@ def report_progresso(arquivo, tab_key, session_key, arquivo_tarefas):
     
     st.subheader("Gráfico de progresso")
     st.text("Acompanhe o progresso das tarefas referentes a cada subprograma")
-    st.plotly_chart(fig, use_container_width=True, key=f'chart_{tab_key}')
+    st.plotly_chart(fig, width='stretch', key=f'chart_{tab_key}')
 
 
 def report_tab5():
