@@ -145,7 +145,7 @@ def report_tab1():
                 yanchor='bottom',
                 y=1.05,
                 xanchor='right',
-                x=1,
+                x=1,    
             )
         )
 
@@ -548,44 +548,83 @@ def report_tab4():
     st.plotly_chart(fig, width='stretch')
 
 
-arquivo_geral = 'progresso.csv'
-df_geral = pd.DataFrame(pd.read_csv(arquivo_geral))
-colunas_data = df_geral.columns[2:]
-for col in colunas_data:
-    df_geral[col] = pd.to_datetime(df_geral[col], errors='coerce')
-for sp in lista_num_sp:
-    if (sp != "null") and (int(sp) not in df_geral["subprograma"].values):
-        df_geral.loc[len(df_geral), 'subprograma'] = int(sp)
+# arquivo_geral = 'progresso.csv'
+# df_geral = pd.DataFrame(pd.read_csv(arquivo_geral))
+# colunas_data = df_geral.columns[2:]
+# for col in colunas_data:
+#     df_geral[col] = pd.to_datetime(df_geral[col], errors='coerce')
+# for sp in lista_num_sp:
+#     if (sp != "null") and (int(sp) not in df_geral["subprograma"].values):
+#         df_geral.loc[len(df_geral), 'subprograma'] = int(sp)
 
-mapa_sub = {s.split(" - ")[0]: " - ".join(s.split(" - ")[1:]) for s in lista_sp if s != "Todos"}
-mask = df_geral["nome"].isna()
-df_geral.loc[mask, "nome"] = (df_geral.loc[mask, "subprograma"].astype(str).map(mapa_sub))
-df_formativa = df_geral[df_geral['nome'].str.contains('FORMATIVA')]
-df_somativa = df_geral[~df_geral['nome'].str.contains('FORMATIVA')]
-df_geral.to_csv(arquivo_geral, index=False)
-df_formativa = df_formativa[[
-        'subprograma', 'nome', 'dv_banco', 'dv_producao', 
-        'imagem', 'conf_hmg', 'conf_pro_t1', 'recuperacao',
-       'recuperacao_t2', 'nm_aluno', 'categorizacao_tn', 'rel_categroizacao',
-       'certif_obj', 'certif_ctx', 'certif_nap', 'certif_esc', 'certif_sinc',
-       'certif_co', 'co_rel_pgto', 'medida_obj', 'medida_ctx', 'medida_esc',
-       'pareamento', 'rel_tratamento', 'rel_verificacao'
-       ]]
-df_formativa.to_csv("progresso_formativa.csv", index=False)
-df_somativa.to_csv("progresso_somativa.csv", index=False)
+# mapa_sub = {s.split(" - ")[0]: " - ".join(s.split(" - ")[1:]) for s in lista_sp if s != "Todos"}
+# mask = df_geral["nome"].isna()
+# df_geral.loc[mask, "nome"] = (df_geral.loc[mask, "subprograma"].astype(str).map(mapa_sub))
+# df_formativa = df_geral[df_geral['nome'].str.contains('FORMATIVA')]
+# df_somativa = df_geral[~df_geral['nome'].str.contains('FORMATIVA')]
+# df_geral.to_csv(arquivo_geral, index=False)
+# df_formativa = df_formativa[['subprograma', 'nome', 'dv_banco',
+# 'dv_producao',
+# 'categorizacao_tn',
+# 'rel_categroizacao',
+# 'certif_sinc',
+# 'nm_aluno',
+# 'certif_obj',
+# 'certif_ctx',
+# 'certif_esc',
+# 'certif_co',
+# 'co_rel_pgto',
+# 'medida_obj',
+# 'medida_ctx',
+# 'medida_esc',
+# 'pareamento',
+# 'rel_verificacao',]]
 
+# df_somativa = df_somativa[['subprograma', 'nome', 'dv_banco',
+# 'dv_producao',
+# 'frop1',
+# 'frop1_ret',
+# 'frop2',
+# 'frop3',
+# 'recuperacao',  
+# 'recuperacao_t2',
+# 'recuperacao_ex',
+# 'recuperacao_ex_ret',
+# 'nm_aluno',
+# 'categorizacao_tn',
+# 'rel_categroizacao',
+# 'certif_obj',
+# 'certif_ctx',
+# 'certif_nap',
+# 'medida_obj',
+# 'medida_ctx',
+# 'rel_tratamento',
+# 'rel_verificacao']]
+
+# if "recuperacao_ex" not in df_somativa.columns:
+#     df_somativa.insert(10, "recuperacao_ex", value=pd.NaT)
+# if "recuperacao_ex_ret" not in df_somativa.columns:
+#     df_somativa.insert(11, "recuperacao_ex_ret", value=pd.NaT)
+# df_formativa.to_csv("progresso_formativa.csv", index=False)
+# df_somativa.to_csv("progresso_somativa.csv", index=False)
 
 def criar_grafico_progresso(df_aux, ordem_tarefas, num_linhas):
     
+    df_aux["Data"] = pd.to_datetime(df_aux["Data"], errors='coerce')
+    
     mapa_tarefas = {tarefa: i for i, tarefa in enumerate(ordem_tarefas)}
     df_aux["x_linha"] = df_aux["tarefas"].map(mapa_tarefas)
-    max_nos = df_aux["x_linha"].max()
+    max_nos = df_aux["x_linha"].max() if not df_aux.empty else 0
     ordem_y = df_aux["nome"].drop_duplicates().tolist()
     df_aux["Data_hover"] = df_aux["Data"].dt.strftime("%d/%m/%Y")
     df_aux["Data_hover"] = df_aux["Data_hover"].fillna("Sem data definida")
     
     df_aux = df_aux.sort_values(by='nome', ascending=False)
     
+    if df_aux.empty or not ordem_tarefas:
+        fig = px.scatter(title="Nenhum dado disponível ainda.")
+        return fig
+
     fig = px.scatter(
         df_aux,
         x="x_linha",
@@ -677,11 +716,14 @@ def processar_tarefas(df, arquivo_tarefas):
     linhas = []
     
     for idx, row in df.iterrows():
+        # Pula linhas onde subprograma ou nome são nulos
+        if pd.isna(row['subprograma']) or pd.isna(row['nome']):
+            continue
         for tarefa in colunas_tarefas:
             data_termino = row[tarefa]
             linhas.append(
                 dict(
-                    Projeto=str(row['subprograma']) + ' - ' + row['nome'],
+                    Projeto=str(int(row['subprograma'])) + ' - ' + str(row['nome']),
                     Tarefa=tarefa,
                     ID=f"{row['nome']}|{tarefa}",
                     Data=data_termino
@@ -690,12 +732,19 @@ def processar_tarefas(df, arquivo_tarefas):
     
     try:
         df_aux = pd.read_csv(arquivo_tarefas)
+        if df_aux.empty or "nome" not in df_aux.columns:
+            raise ValueError("Arquivo de tarefas inválido ou vazio")
         df_aux["concluido"] = df_aux["concluido"].fillna(False).astype(bool)
-    except FileNotFoundError:
+    except (FileNotFoundError, pd.errors.EmptyDataError, ValueError):
         df_aux = pd.DataFrame(columns=["nome", "tarefas", "concluido"])
         df_aux["concluido"] = df_aux["concluido"].astype(bool)
-    
+
     df_marcos = pd.DataFrame(linhas)
+
+    if df_marcos.empty:
+        df_resultado = pd.DataFrame(columns=["nome", "tarefas", "Data", "concluido", "Status", "size"])
+        return df_resultado
+
     df_marcos.rename(
         columns={
             "Projeto": "nome",
@@ -729,10 +778,11 @@ def processar_tarefas(df, arquivo_tarefas):
     
     return df_aux
 
-
 def renderizar_editor_progresso(df, tab_key, column_configs):
     
-    with st.form(key=tab_key):
+    form_key = f"form_{tab_key}"
+    
+    with st.form(key=form_key):
         progresso = st.data_editor(
             df,
             num_rows="dynamic",
@@ -746,41 +796,44 @@ def renderizar_editor_progresso(df, tab_key, column_configs):
     return progresso, nova_coluna, submitted
 
 
-def renderizar_quadro_tarefas(df_aux, subs, tab_key):
+def renderizar_quadro_tarefas(df_aux, select_sub, tab_key, arquivo_tarefas):
     
-    st.subheader("Quadro de Tarefas")
-    select_sub = st.selectbox("Escolha um subprograma", options=subs, key=f'select_sub_{tab_key}')
-    
-    with st.form(key=f"quadro_tarefas_{tab_key}"):
-        col = st.columns(1)[0]
+    with st.container(border=True):
+        st.markdown(f"**{select_sub}**")
         
-        with col:
-            with st.container(border=True):
-                st.markdown(f"**{select_sub}**")
-                
-                tarefas_sub = df_aux[df_aux["nome"] == select_sub]
-                
-                for idx, row in tarefas_sub.iterrows():
-                    marcado = st.checkbox(
-                        row["tarefas"],
-                        value=row["concluido"],
-                        key=f"{tab_key}_{select_sub}_{idx}"
-                    )
-                    
-                    df_aux.loc[
-                        (df_aux["nome"] == select_sub) &
-                        (df_aux["tarefas"] == row["tarefas"]),
-                        "concluido"
-                    ] = marcado
+        tarefas_sub = df_aux[df_aux["nome"] == select_sub]
         
-        enviado = st.form_submit_button(":material/save: Salvar progresso das tarefas")
+        for idx, row in tarefas_sub.iterrows():
+            chave_checkbox = f"{tab_key}_{select_sub}_{idx}"
+            
+            if chave_checkbox not in st.session_state:
+                st.session_state[chave_checkbox] = bool(row["concluido"])
+            
+            st.checkbox(
+                row["tarefas"],
+                key=chave_checkbox
+            )
+            
+            df_aux.loc[
+                (df_aux["nome"] == select_sub) &
+                (df_aux["tarefas"] == row["tarefas"]),
+                "concluido"
+            ] = st.session_state[chave_checkbox]
     
-    return enviado, df_aux
+    if st.button(":material/save: Salvar progresso das tarefas", key=f"salvar_tarefas_{tab_key}"):
+        return True, df_aux
+    
+    return False, df_aux
 
+# @st.cache_data(ttl=3600, show_spinner="Atualizando dados do sistema...")
+def ler_csv(arquivo):
+    return pd.read_csv(arquivo)
 
-def atualizar_csv_geral(arquivo_somativa, arquivo_formativa):
-    df_somativa = pd.read_csv(arquivo_somativa)
-    df_formativa = pd.read_csv(arquivo_formativa)
+def atualizar_csv_geral(arquivo_somativa, arquivo_formativa, arquivo_fluencia, arquivo_correcao):
+    df_somativa = ler_csv(arquivo_somativa)
+    df_formativa = ler_csv(arquivo_formativa)
+    flu = ler_csv(arquivo_fluencia)
+    cor = ler_csv(arquivo_correcao)
     
     for col in df_somativa.columns[2:]:
         df_somativa[col] = pd.to_datetime(df_somativa[col], errors='coerce')
@@ -790,6 +843,10 @@ def atualizar_csv_geral(arquivo_somativa, arquivo_formativa):
     df_geral = pd.concat([df_somativa, df_formativa], ignore_index=True)
     df_geral = df_geral.sort_values(by='subprograma')
     
+    df_somativa.to_csv(arquivo_somativa, index=False)
+    df_formativa.to_csv(arquivo_formativa, index=False)
+    flu.to_csv(arquivo_fluencia, index=False)
+    cor.to_csv(arquivo_correcao, index=False)
     df_geral.to_csv('progresso.csv', index=False)
 
 
@@ -803,9 +860,52 @@ def report_progresso(arquivo, tab_key, session_key, arquivo_tarefas):
         for col in colunas_data:
             df[col] = pd.to_datetime(df[col], errors='coerce')
         st.session_state[session_key] = df
+    else:
+        if st.session_state[session_key].empty or st.session_state[session_key].dropna(subset=['nome']).empty:
+            df = pd.read_csv(arquivo)
+            colunas_data = df.columns[2:]
+            for col in colunas_data:
+                df[col] = pd.to_datetime(df[col], errors='coerce')
+            st.session_state[session_key] = df
     
     df = st.session_state[session_key].copy()
-    
+
+    # ── GRÁFICO ANTES DO EDITOR ──────────────────────────────────────────────
+    df_grafico = df.dropna(subset=['subprograma', 'nome'])
+
+    if not df_grafico.empty:
+        df_grafico["subprograma"] = df_grafico["subprograma"].astype(int)
+        subs = (df_grafico["subprograma"].astype(str) + " - " + df_grafico["nome"]).unique()
+
+        df_aux = processar_tarefas(st.session_state[session_key], arquivo_tarefas)
+
+        chave_tarefas = f"df_aux_{tab_key}"
+        if chave_tarefas not in st.session_state:
+            st.session_state[chave_tarefas] = df_aux.copy()
+        else:
+            concluido_salvo = st.session_state[chave_tarefas][["nome", "tarefas", "concluido"]].copy()
+            df_aux = df_aux.drop(columns=["concluido"]).merge(concluido_salvo, on=["nome", "tarefas"], how="left")
+            df_aux["concluido"] = df_aux["concluido"].fillna(False).astype(bool)
+            st.session_state[chave_tarefas] = df_aux.copy()
+
+        df_aux_plot = st.session_state[chave_tarefas].copy()
+        df_aux_plot["Status"] = df_aux_plot["concluido"].map({True: 'Concluído', False: 'Pendente'})
+        df_aux_plot['size'] = int(5)
+
+        hoje = pd.Timestamp(date.today())
+        df_aux_plot.loc[(df_aux_plot["Status"] == "Pendente") & (df_aux_plot["Data"] == hoje), "Status"] = "Finaliza hoje"
+        df_aux_plot.loc[(df_aux_plot["Status"] == "Pendente") & (df_aux_plot["Data"] < hoje), "Status"] = "Atrasado"
+
+        ordem_tarefas = df_aux_plot["tarefas"].dropna().unique().tolist()
+        num_linhas = len(df_aux_plot["nome"].unique())
+        fig = criar_grafico_progresso(df_aux_plot, ordem_tarefas, num_linhas)
+        st.plotly_chart(fig, width='stretch', key=f'chart_{tab_key}')
+    else:
+        st.info("Nenhum dado cadastrado ainda. Adicione subprogramas na tabela abaixo e salve para visualizar o progresso.")
+    # ── FIM DO GRÁFICO ───────────────────────────────────────────────────────
+    st.subheader("Datas das tarefas correspondentes a cada subprograma")
+    st.text('Adicione as datas de término de cada tarefa, também é possível adicionar novas linhas diretamente na tabela e colunas pelo formulário abaixo')
+
     column_configs = {}
     for col in df.columns[2:]:
         column_configs[col] = st.column_config.DateColumn(col, format="DD/MM/YYYY")
@@ -817,14 +917,14 @@ def report_progresso(arquivo, tab_key, session_key, arquivo_tarefas):
         
         if f"editor_{tab_key}" in st.session_state:
             estado_editor = st.session_state[f"editor_{tab_key}"]
-            
             if "columns" in estado_editor:
                 ordem_colunas = estado_editor["columns"]
                 df_final = df_final[ordem_colunas]
         
+        df_final = df_final.loc[:, ~df_final.columns.str.match(r'^Unnamed|^$')]
+
         if nova_coluna:
             nova_coluna = nova_coluna.strip()
-            
             if nova_coluna not in df_final.columns:
                 df_final[nova_coluna] = pd.NaT
                 df_final[nova_coluna] = df_final[nova_coluna].astype("datetime64[ns]")
@@ -836,47 +936,45 @@ def report_progresso(arquivo, tab_key, session_key, arquivo_tarefas):
         mask_validas = df_final[colunas_tarefa].notna().any(axis=1) | df_final['nome'].notna()
         df_final = df_final[mask_validas]
         
-        st.session_state[session_key] = df_final
+        df_final = df_final.dropna(subset=['subprograma'])
         df_final["subprograma"] = df_final["subprograma"].astype(int)
         df_final = df_final.sort_values(by='subprograma')
-        
         df_final.to_csv(arquivo, index=False)
         
-        if 'somativa' in arquivo:
-            atualizar_csv_geral('progresso_somativa.csv', 'progresso_formativa.csv')
-        else:
-            atualizar_csv_geral('progresso_somativa.csv', 'progresso_formativa.csv')
+        st.session_state.pop(session_key, None)
+        st.session_state.pop(f"df_aux_{tab_key}", None)
         
+        atualizar_csv_geral('progresso_somativa.csv', 'progresso_formativa.csv', "progresso_fluencia.csv", "progresso_correcao.csv")
         st.rerun()
-    
-    df_aux = processar_tarefas(st.session_state[session_key], arquivo_tarefas)
-    
-    df = st.session_state[session_key].copy()
-    df["subprograma"] = df["subprograma"].astype(int)
-    subs = (df["subprograma"].astype(str) + " - " + df["nome"]).unique()
-    
-    enviado, df_aux_modificado = renderizar_quadro_tarefas(df_aux, subs, tab_key)
-    
-    if enviado:
-        df_aux_modificado[["nome", "tarefas", "concluido"]].drop_duplicates().to_csv(arquivo_tarefas, index=False)
-        st.success("Progresso das tarefas salvo!")
-        st.rerun()  
-    
-    df_aux_modificado["Status"] = df_aux_modificado["concluido"].map({True: 'Concluído', False: 'Pendente'})
-    df_aux_modificado['size'] = int(5)
-    
-    hoje = pd.Timestamp(date.today())
-    df_aux_modificado.loc[(df_aux_modificado["Status"] == "Pendente") & (df_aux_modificado["Data"] == hoje), "Status"] = "Finaliza hoje"
-    df_aux_modificado.loc[(df_aux_modificado["Status"] == "Pendente") & (df_aux_modificado["Data"] < hoje), "Status"] = "Atrasado"
-    
-    ordem_tarefas = df_aux_modificado["tarefas"].dropna().unique().tolist()
-    num_linhas = len(df_aux_modificado["nome"].unique())
-    fig = criar_grafico_progresso(df_aux_modificado, ordem_tarefas, num_linhas)
-    
-    st.subheader("Gráfico de progresso")
-    st.text("Acompanhe o progresso das tarefas referentes a cada subprograma")
-    st.plotly_chart(fig, width='stretch', key=f'chart_{tab_key}')
 
+    # ── QUADRO DE TAREFAS (mantido no lugar original) ────────────────────────
+    st.subheader("Quadro de tarefas")
+    st.text('Marque as tarefas concluídas')
+
+    if st.session_state[session_key].dropna(subset=['nome']).empty:
+        return
+
+    if not df_grafico.empty:
+        select_sub = st.selectbox("Escolha um subprograma", options=subs, key=f'select_sub_{tab_key}')
+        if st.button(":material/check_circle: Marcar todas como concluídas", key=f"marcar_todos_{tab_key}"):
+            st.session_state[chave_tarefas].loc[
+                st.session_state[chave_tarefas]["nome"] == select_sub, "concluido"
+            ] = True
+            st.session_state[chave_tarefas][["nome", "tarefas", "concluido"]].drop_duplicates().to_csv(arquivo_tarefas, index=False)
+            tarefas_sub = st.session_state[chave_tarefas][st.session_state[chave_tarefas]["nome"] == select_sub]
+            for idx in tarefas_sub.index:
+                st.session_state[f"{tab_key}_{select_sub}_{idx}"] = True
+            st.rerun()
+
+        enviado, df_aux_modificado = renderizar_quadro_tarefas(
+            st.session_state[chave_tarefas].copy(), select_sub, tab_key, arquivo_tarefas
+        )
+
+        if enviado:
+            df_aux_modificado[["nome", "tarefas", "concluido"]].drop_duplicates().to_csv(arquivo_tarefas, index=False)
+            st.session_state[chave_tarefas] = df_aux_modificado.copy()
+            st.success("Progresso das tarefas salvo!")
+            st.rerun()
 
 def report_tab5():
     report_progresso(
@@ -895,6 +993,21 @@ def report_tab6():
         arquivo_tarefas='tarefas_formativa.csv'
     )
 
+def report_tab7():
+    report_progresso(
+        arquivo='progresso_fluencia.csv',
+        tab_key='tab7',
+        session_key='df_tab7',
+        arquivo_tarefas='tarefas_fluencia.csv'
+    )
+
+def report_tab8():
+    report_progresso(
+        arquivo='progresso_correcao.csv',
+        tab_key='tab8',
+        session_key='df_tab8',
+        arquivo_tarefas='tarefas_correcao.csv'
+    )
 
 
 def dashboard():
@@ -909,7 +1022,7 @@ def dashboard():
     '''
     st.markdown(css, unsafe_allow_html=True)
     
-    tab1, tab2, tab3, tab4, tab5 = st.tabs(["Processamento / Instrumento", "Verificação", "Datas digitalização", "Progresso Somativas", "Progresso Formativas"])
+    tab1, tab2, tab3, tab4, tab5, tab6, tab7 = st.tabs(["Processamento / Instrumento", "Verificação", "Datas digitalização", "Progresso Somativas", "Progresso Formativas", "Progresso Fluência", "Progresso Correção"])
 
     with tab1:
         st.header("Relatórios de processamento:")
@@ -931,15 +1044,27 @@ def dashboard():
 
     
     with tab4:
-        st.subheader("Datas das tarefas correspondentes a cada subprograma")
-        st.text('Adicione as datas de término de cada tarefa, também é possível adicionar novas linhas diretamente na tabela e colunas pelo formulário abaixo')
+        st.subheader("Gráfico de progresso")
+        st.text("Acompanhe o progresso das tarefas referentes a cada subprograma")
         report_tab5()
 
 
     with tab5:
-        st.subheader("Datas das tarefas correspondentes a cada subprograma")
-        st.text('Adicione as datas de término de cada tarefa, também é possível adicionar novas linhas diretamente na tabela e colunas pelo formulário abaixo')
+        st.subheader("Gráfico de progresso")
+        st.text("Acompanhe o progresso das tarefas referentes a cada subprograma")
         report_tab6()
+
+    
+    with tab6:
+        st.subheader("Gráfico de progresso")
+        st.text("Acompanhe o progresso das tarefas referentes a cada subprograma")
+        report_tab7()
+
+
+    with tab7:
+        st.subheader("Gráfico de progresso")
+        st.text("Acompanhe o progresso das tarefas referentes a cada subprograma")
+        report_tab8()        
 
 
 def main():
