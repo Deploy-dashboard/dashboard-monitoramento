@@ -1,33 +1,65 @@
 nome,tarefas,concluido
-2087 - MG BELO HORIZONTE - 5ª AV. FORMATIVA 2025 (NOVEMBRO),dv_banco,True
-2087 - MG BELO HORIZONTE - 5ª AV. FORMATIVA 2025 (NOVEMBRO),dv_producao,True
-2087 - MG BELO HORIZONTE - 5ª AV. FORMATIVA 2025 (NOVEMBRO),categorizacao_tn,True
-2087 - MG BELO HORIZONTE - 5ª AV. FORMATIVA 2025 (NOVEMBRO),rel_categroizacao,True
-2087 - MG BELO HORIZONTE - 5ª AV. FORMATIVA 2025 (NOVEMBRO),certif_sinc,True
-2087 - MG BELO HORIZONTE - 5ª AV. FORMATIVA 2025 (NOVEMBRO),nm_aluno,True
-2087 - MG BELO HORIZONTE - 5ª AV. FORMATIVA 2025 (NOVEMBRO),certif_obj,True
-2087 - MG BELO HORIZONTE - 5ª AV. FORMATIVA 2025 (NOVEMBRO),certif_ctx,True
-2087 - MG BELO HORIZONTE - 5ª AV. FORMATIVA 2025 (NOVEMBRO),certif_esc,True
-2087 - MG BELO HORIZONTE - 5ª AV. FORMATIVA 2025 (NOVEMBRO),certif_co,True
-2087 - MG BELO HORIZONTE - 5ª AV. FORMATIVA 2025 (NOVEMBRO),co_rel_pgto,True
-2087 - MG BELO HORIZONTE - 5ª AV. FORMATIVA 2025 (NOVEMBRO),medida_obj,True
-2087 - MG BELO HORIZONTE - 5ª AV. FORMATIVA 2025 (NOVEMBRO),medida_ctx,True
-2087 - MG BELO HORIZONTE - 5ª AV. FORMATIVA 2025 (NOVEMBRO),medida_esc,True
-2087 - MG BELO HORIZONTE - 5ª AV. FORMATIVA 2025 (NOVEMBRO),pareamento,True
-2087 - MG BELO HORIZONTE - 5ª AV. FORMATIVA 2025 (NOVEMBRO),rel_verificacao,True
-2111 - RJ RIO DE JANEIRO (MUNICÍPIO) - 4ª AV. FORMATIVA 2025 (ADR 4),dv_banco,False
-2111 - RJ RIO DE JANEIRO (MUNICÍPIO) - 4ª AV. FORMATIVA 2025 (ADR 4),dv_producao,False
-2111 - RJ RIO DE JANEIRO (MUNICÍPIO) - 4ª AV. FORMATIVA 2025 (ADR 4),categorizacao_tn,False
-2111 - RJ RIO DE JANEIRO (MUNICÍPIO) - 4ª AV. FORMATIVA 2025 (ADR 4),rel_categroizacao,False
-2111 - RJ RIO DE JANEIRO (MUNICÍPIO) - 4ª AV. FORMATIVA 2025 (ADR 4),certif_sinc,False
-2111 - RJ RIO DE JANEIRO (MUNICÍPIO) - 4ª AV. FORMATIVA 2025 (ADR 4),nm_aluno,False
-2111 - RJ RIO DE JANEIRO (MUNICÍPIO) - 4ª AV. FORMATIVA 2025 (ADR 4),certif_obj,False
-2111 - RJ RIO DE JANEIRO (MUNICÍPIO) - 4ª AV. FORMATIVA 2025 (ADR 4),certif_ctx,False
-2111 - RJ RIO DE JANEIRO (MUNICÍPIO) - 4ª AV. FORMATIVA 2025 (ADR 4),certif_esc,False
-2111 - RJ RIO DE JANEIRO (MUNICÍPIO) - 4ª AV. FORMATIVA 2025 (ADR 4),certif_co,False
-2111 - RJ RIO DE JANEIRO (MUNICÍPIO) - 4ª AV. FORMATIVA 2025 (ADR 4),co_rel_pgto,False
-2111 - RJ RIO DE JANEIRO (MUNICÍPIO) - 4ª AV. FORMATIVA 2025 (ADR 4),medida_obj,False
-2111 - RJ RIO DE JANEIRO (MUNICÍPIO) - 4ª AV. FORMATIVA 2025 (ADR 4),medida_ctx,False
-2111 - RJ RIO DE JANEIRO (MUNICÍPIO) - 4ª AV. FORMATIVA 2025 (ADR 4),medida_esc,False
-2111 - RJ RIO DE JANEIRO (MUNICÍPIO) - 4ª AV. FORMATIVA 2025 (ADR 4),pareamento,False
-2111 - RJ RIO DE JANEIRO (MUNICÍPIO) - 4ª AV. FORMATIVA 2025 (ADR 4),rel_verificacao,True
+2173 - SE ARACAJU - 1ª AV. FORMATIVA 2026,dv_banco,True
+2173 - SE ARACAJU - 1ª AV. FORMATIVA 2026,dv_producao,True
+2173 - SE ARACAJU - 1ª AV. FORMATIVA 2026,categorizacao_tn,False
+2173 - SE ARACAJU - 1ª AV. FORMATIVA 2026,rel_categroizacao,False
+2173 - SE ARACAJU - 1ª AV. FORMATIVA 2026,certif_sinc,False
+2173 - SE ARACAJU - 1ª AV. FORMATIVA 2026,nm_aluno,False
+2173 - SE ARACAJU - 1ª AV. FORMATIVA 2026,certif_obj,False
+2173 - SE ARACAJU - 1ª AV. FORMATIVA 2026,certif_ctx,False
+2173 - SE ARACAJU - 1ª AV. FORMATIVA 2026,certif_esc,False
+2173 - SE ARACAJU - 1ª AV. FORMATIVA 2026,certif_co,False
+2173 - SE ARACAJU - 1ª AV. FORMATIVA 2026,co_rel_pgto,False
+2173 - SE ARACAJU - 1ª AV. FORMATIVA 2026,medida_obj,False
+2173 - SE ARACAJU - 1ª AV. FORMATIVA 2026,medida_ctx,False
+2173 - SE ARACAJU - 1ª AV. FORMATIVA 2026,medida_esc,False
+2173 - SE ARACAJU - 1ª AV. FORMATIVA 2026,pareamento,False
+2173 - SE ARACAJU - 1ª AV. FORMATIVA 2026,rel_verificacao,False
+2216 - GO GOIÁS - AV. DIAGNÓSTICA 2026,dv_banco,False
+2216 - GO GOIÁS - AV. DIAGNÓSTICA 2026,dv_producao,False
+2216 - GO GOIÁS - AV. DIAGNÓSTICA 2026,categorizacao_tn,False
+2216 - GO GOIÁS - AV. DIAGNÓSTICA 2026,rel_categroizacao,False
+2216 - GO GOIÁS - AV. DIAGNÓSTICA 2026,certif_sinc,False
+2216 - GO GOIÁS - AV. DIAGNÓSTICA 2026,nm_aluno,False
+2216 - GO GOIÁS - AV. DIAGNÓSTICA 2026,certif_obj,False
+2216 - GO GOIÁS - AV. DIAGNÓSTICA 2026,certif_ctx,False
+2216 - GO GOIÁS - AV. DIAGNÓSTICA 2026,certif_esc,False
+2216 - GO GOIÁS - AV. DIAGNÓSTICA 2026,certif_co,False
+2216 - GO GOIÁS - AV. DIAGNÓSTICA 2026,co_rel_pgto,False
+2216 - GO GOIÁS - AV. DIAGNÓSTICA 2026,medida_obj,False
+2216 - GO GOIÁS - AV. DIAGNÓSTICA 2026,medida_ctx,False
+2216 - GO GOIÁS - AV. DIAGNÓSTICA 2026,medida_esc,False
+2216 - GO GOIÁS - AV. DIAGNÓSTICA 2026,pareamento,False
+2216 - GO GOIÁS - AV. DIAGNÓSTICA 2026,rel_verificacao,False
+7777 - lukas,dv_banco,True
+7777 - lukas,dv_producao,False
+7777 - lukas,categorizacao_tn,False
+7777 - lukas,rel_categroizacao,False
+7777 - lukas,certif_sinc,False
+7777 - lukas,nm_aluno,False
+7777 - lukas,certif_obj,False
+7777 - lukas,certif_ctx,False
+7777 - lukas,certif_esc,False
+7777 - lukas,certif_co,False
+7777 - lukas,co_rel_pgto,False
+7777 - lukas,medida_obj,False
+7777 - lukas,medida_ctx,False
+7777 - lukas,medida_esc,False
+7777 - lukas,pareamento,False
+7777 - lukas,rel_verificacao,False
+8888 - lukas2,dv_banco,False
+8888 - lukas2,dv_producao,False
+8888 - lukas2,categorizacao_tn,False
+8888 - lukas2,rel_categroizacao,False
+8888 - lukas2,certif_sinc,False
+8888 - lukas2,nm_aluno,False
+8888 - lukas2,certif_obj,False
+8888 - lukas2,certif_ctx,False
+8888 - lukas2,certif_esc,False
+8888 - lukas2,certif_co,False
+8888 - lukas2,co_rel_pgto,False
+8888 - lukas2,medida_obj,False
+8888 - lukas2,medida_ctx,False
+8888 - lukas2,medida_esc,False
+8888 - lukas2,pareamento,False
+8888 - lukas2,rel_verificacao,False
