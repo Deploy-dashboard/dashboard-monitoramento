@@ -902,7 +902,7 @@ def report_progresso(arquivo, tab_key, session_key, arquivo_tarefas):
         st.plotly_chart(fig, width='stretch', key=f'chart_{tab_key}')
     else:
         st.info("Nenhum dado cadastrado ainda. Adicione subprogramas na tabela abaixo e salve para visualizar o progresso.")
-    # ── FIM DO GRÁFICO ───────────────────────────────────────────────────────
+
     st.subheader("Datas das tarefas correspondentes a cada subprograma")
     st.text('Adicione as datas de término de cada tarefa, também é possível adicionar novas linhas diretamente na tabela e colunas pelo formulário abaixo')
 
@@ -947,14 +947,12 @@ def report_progresso(arquivo, tab_key, session_key, arquivo_tarefas):
         atualizar_csv_geral('progresso_somativa.csv', 'progresso_formativa.csv', "progresso_fluencia.csv", "progresso_correcao.csv")
         st.rerun()
 
-    # ── QUADRO DE TAREFAS (mantido no lugar original) ────────────────────────
-    st.subheader("Quadro de tarefas")
-    st.text('Marque as tarefas concluídas')
 
     if st.session_state[session_key].dropna(subset=['nome']).empty:
         return
 
     if not df_grafico.empty:
+        st.subheader("Quadro de tarefas - marque as tarefas concluídas")
         select_sub = st.selectbox("Escolha um subprograma", options=subs, key=f'select_sub_{tab_key}')
         if st.button(":material/check_circle: Marcar todas como concluídas", key=f"marcar_todos_{tab_key}"):
             st.session_state[chave_tarefas].loc[
@@ -1044,25 +1042,25 @@ def dashboard():
 
     
     with tab4:
-        st.subheader("Gráfico de progresso")
+        st.header("Gráfico de progresso")
         st.text("Acompanhe o progresso das tarefas referentes a cada subprograma")
         report_tab5()
 
 
     with tab5:
-        st.subheader("Gráfico de progresso")
+        st.header("Gráfico de progresso")
         st.text("Acompanhe o progresso das tarefas referentes a cada subprograma")
         report_tab6()
 
     
     with tab6:
-        st.subheader("Gráfico de progresso")
+        st.header("Gráfico de progresso")
         st.text("Acompanhe o progresso das tarefas referentes a cada subprograma")
         report_tab7()
 
 
     with tab7:
-        st.subheader("Gráfico de progresso")
+        st.header("Gráfico de progresso")
         st.text("Acompanhe o progresso das tarefas referentes a cada subprograma")
         report_tab8()        
 
