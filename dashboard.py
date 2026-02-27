@@ -6,7 +6,10 @@ import requests, warnings
 import plotly.graph_objects as go
 import plotly.express as px
 from datetime import date
+from db import conecta_banco
+from sqlalchemy import text
 
+engine = conecta_banco()
 warnings.simplefilter("ignore")
 
 st.set_page_config(page_title="Dashboard", layout="wide", page_icon="images\\icon.png")
@@ -429,11 +432,11 @@ def report_tab3():
    
 def report_tab4():
 
-    arquivo = "datas.csv"
     hoje = pd.Timestamp(date.today())
 
     if "datas" not in st.session_state:
-        datas = pd.read_csv(arquivo)
+        with engine.connect() as conn:
+            datas = pd.read_sql("SELECT * FROM DATAS", conn)
         datas["inicio"] = pd.to_datetime(datas["inicio"], errors="coerce")
         datas["fim"] = pd.to_datetime(datas["fim"], errors="coerce")
         st.session_state.datas = datas
@@ -470,17 +473,17 @@ def report_tab4():
 
         datas.drop(columns=["Cód. subprograma", "Total de registros previstos", "Total de registros digitalizados"], inplace=True)
 
-        datas["% digitalizados"] = (datas["digitalizados"] / datas["previstos"] * 100).round(2)
+        datas["porcent_digitalizados"] = (datas["digitalizados"] / datas["previstos"] * 100).round(2)
 
         mask = datas["inicio"].notna() & datas["fim"].notna()
 
         datas.loc[mask, "diferenca"] = (datas.loc[mask, "fim"] - datas.loc[mask, "inicio"]).dt.days.clip(lower=1)
 
-        datas.loc[mask, "media dia"] = (datas.loc[mask, "previstos"] / datas.loc[mask, "diferenca"]).round(0)
+        datas.loc[mask, "media_dia"] = (datas.loc[mask, "previstos"] / datas.loc[mask, "diferenca"]).round(0)
 
         dias_passados = (hoje - datas["inicio"]).dt.days.clip(lower=0)
 
-        datas["esperado hoje"] = (datas["media dia"] * dias_passados).clip(lower=0, upper=datas["previstos"]).round(0)
+        datas["esperado_hoje"] = (datas["media_dia"] * dias_passados).clip(lower=0, upper=datas["previstos"]).round(0)
 
         return datas
 
@@ -492,8 +495,8 @@ def report_tab4():
             num_rows="dynamic",
             disabled=[
                 "nome", "previstos", "digitalizados",
-                "diferenca", "media dia",
-                "esperado hoje", "% digitalizados", "cor"
+                "diferenca", "media_dia",
+                "esperado_hoje", "porcent_digitalizados", "cor"
             ],
             column_config={ 
                 "previstos": st.column_config.NumberColumn(format="localized"), 
@@ -501,8 +504,8 @@ def report_tab4():
                 "inicio": st.column_config.DateColumn(format="DD/MM/YYYY"), 
                 "fim": st.column_config.DateColumn(format="DD/MM/YYYY"), 
                 "diferenca": None, 
-                "media dia": None, 
-                "esperado hoje": st.column_config.NumberColumn(format="localized"), 
+                "media_dia": None, 
+                "esperado_hoje": st.column_config.NumberColumn(format="localized"), 
                 "cor": None 
                 },  
             hide_index=True
@@ -515,7 +518,7 @@ def report_tab4():
     st.session_state.datas = datas_calculadas
 
     if salvar:
-        datas_calculadas.to_csv(arquivo, index=False)
+        datas_calculadas.to_sql("DATAS", engine, if_exists="append", index=False )
         st.success("Alterações salvas com sucesso!")
 
     datas = st.session_state.datas
@@ -525,12 +528,12 @@ def report_tab4():
 
     datas["cor"] = datas.apply(
         lambda row: "green"
-        if (row["digitalizados"] >= row["esperado hoje"] or row["digitalizados"] >= row["esperado hoje"] * 0.9) else "red", axis=1)
+        if (row["digitalizados"] >= row["esperado_hoje"] or row["digitalizados"] >= row["esperado_hoje"] * 0.9) else "red", axis=1)
 
     fig = go.Figure()
 
     fig.add_trace(go.Bar(
-        x=datas["% digitalizados"],
+        x=datas["porcent_digitalizados"],
         y=labels,
         orientation="h",
         marker_color=datas["cor"],
@@ -710,13 +713,12 @@ def criar_grafico_progresso(df_aux, ordem_tarefas, num_linhas):
     return fig
 
 
-def processar_tarefas(df, arquivo_tarefas):
+def processar_tarefas(df, tabela_tarefas):
     
     colunas_tarefas = df.columns[2:]
     linhas = []
     
     for idx, row in df.iterrows():
-        # Pula linhas onde subprograma ou nome são nulos
         if pd.isna(row['subprograma']) or pd.isna(row['nome']):
             continue
         for tarefa in colunas_tarefas:
@@ -731,10 +733,12 @@ def processar_tarefas(df, arquivo_tarefas):
             )
     
     try:
-        df_aux = pd.read_csv(arquivo_tarefas)
+        df_aux = ler_sql(tabela_tarefas)
         if df_aux.empty or "nome" not in df_aux.columns:
             raise ValueError("Arquivo de tarefas inválido ou vazio")
         df_aux["concluido"] = df_aux["concluido"].fillna(False).astype(bool)
+        # CORRIGIDO: remove duplicatas antes do merge
+        df_aux = df_aux.drop_duplicates(subset=["nome", "tarefas"], keep="last")
     except (FileNotFoundError, pd.errors.EmptyDataError, ValueError):
         df_aux = pd.DataFrame(columns=["nome", "tarefas", "concluido"])
         df_aux["concluido"] = df_aux["concluido"].astype(bool)
@@ -742,22 +746,14 @@ def processar_tarefas(df, arquivo_tarefas):
     df_marcos = pd.DataFrame(linhas)
 
     if df_marcos.empty:
-        df_resultado = pd.DataFrame(columns=["nome", "tarefas", "Data", "concluido", "Status", "size"])
-        return df_resultado
+        return pd.DataFrame(columns=["nome", "tarefas", "Data", "concluido", "Status", "size"])
 
-    df_marcos.rename(
-        columns={
-            "Projeto": "nome",
-            "Tarefa": "tarefas",
-        },
-        inplace=True
-    )
+    df_marcos.rename(columns={"Projeto": "nome", "Tarefa": "tarefas"}, inplace=True)
     
-    df_aux = df_marcos.merge(
-        df_aux,
-        on=["nome", "tarefas"],
-        how="left"
-    )
+    # CORRIGIDO: remove duplicatas do df_marcos também
+    df_marcos = df_marcos.drop_duplicates(subset=["nome", "tarefas"])
+    
+    df_aux = df_marcos.merge(df_aux, on=["nome", "tarefas"], how="left")
     df_aux["concluido"] = df_aux["concluido"].fillna(False).astype(bool)
     
     if 'Data_y' in df_aux.columns:
@@ -768,7 +764,9 @@ def processar_tarefas(df, arquivo_tarefas):
         df_aux.drop(columns='ID_y', inplace=True)
     if 'ID_x' in df_aux.columns:
         df_aux.drop(columns='ID_x', inplace=True)
-    
+
+    df_aux = df_aux.drop_duplicates(subset=["nome", "tarefas"])
+
     df_aux["Status"] = df_aux["concluido"].map({True: 'Concluído', False: 'Pendente'})
     df_aux['size'] = int(5)
     
@@ -796,7 +794,7 @@ def renderizar_editor_progresso(df, tab_key, column_configs):
     return progresso, nova_coluna, submitted
 
 
-def renderizar_quadro_tarefas(df_aux, select_sub, tab_key, arquivo_tarefas):
+def renderizar_quadro_tarefas(df_aux, select_sub, tab_key, tabela_tarefas):
     
     with st.container(border=True):
         st.markdown(f"**{select_sub}**")
@@ -826,43 +824,79 @@ def renderizar_quadro_tarefas(df_aux, select_sub, tab_key, arquivo_tarefas):
     return False, df_aux
 
 # @st.cache_data(ttl=3600, show_spinner="Atualizando dados do sistema...")
-def ler_csv(arquivo):
-    return pd.read_csv(arquivo)
+def ler_sql(tabela):
+    with engine.connect() as conn:
+        return pd.read_sql(f"SELECT * FROM {tabela}", conn)
 
-def atualizar_csv_geral(arquivo_somativa, arquivo_formativa, arquivo_fluencia, arquivo_correcao):
-    df_somativa = ler_csv(arquivo_somativa)
-    df_formativa = ler_csv(arquivo_formativa)
-    flu = ler_csv(arquivo_fluencia)
-    cor = ler_csv(arquivo_correcao)
-    
+def salvar_tarefas(df_tarefas, tabela_tarefas, nome):
+    """Deleta registros existentes do subprograma e reinsere, evitando duplicatas."""
+    df_save = df_tarefas[["nome", "tarefas", "concluido"]].drop_duplicates()
+    df_save = df_save[df_save["nome"] == nome]
+
+    with engine.begin() as conn:
+        conn.execute(
+            text(f"DELETE FROM [{tabela_tarefas}] WHERE nome = :nome"),
+            {"nome": nome}
+        )
+        if not df_save.empty:
+            df_save.to_sql(tabela_tarefas, conn, if_exists="append", index=False)
+
+
+def atualizar_banco(tabela_somativa, tabela_formativa, tabela_fluencia, tabela_correcao):
+    df_somativa = ler_sql(tabela_somativa)
+    df_formativa = ler_sql(tabela_formativa)
+    df_fluencia = ler_sql(tabela_fluencia)
+    df_correcao = ler_sql(tabela_correcao)
+
     for col in df_somativa.columns[2:]:
         df_somativa[col] = pd.to_datetime(df_somativa[col], errors='coerce')
     for col in df_formativa.columns[2:]:
         df_formativa[col] = pd.to_datetime(df_formativa[col], errors='coerce')
+
+    def filtrar_novos(df, tabela):
+        ids = pd.read_sql(f"SELECT subprograma FROM [{tabela}]", engine)["subprograma"].tolist()
+        return df[~df["subprograma"].isin(ids)]
+
+    df_formativa_novos = filtrar_novos(df_formativa, tabela_formativa)
+    df_somativa_novos  = filtrar_novos(df_somativa,  tabela_somativa)
+    df_fluencia_novos  = filtrar_novos(df_fluencia,  tabela_fluencia)
+    df_correcao_novos  = filtrar_novos(df_correcao,  tabela_correcao)
+
+    if not df_formativa_novos.empty:
+        df_formativa_novos.to_sql(tabela_formativa, engine, if_exists="append", index=False)
+    if not df_somativa_novos.empty:
+        df_somativa_novos.to_sql(tabela_somativa, engine, if_exists="append", index=False)
+    if not df_fluencia_novos.empty:
+        df_fluencia_novos.to_sql(tabela_fluencia, engine, if_exists="append", index=False)
+    if not df_correcao_novos.empty:
+        df_correcao_novos.to_sql(tabela_correcao, engine, if_exists="append", index=False)
+
+    colunas_progresso = pd.read_sql("SELECT TOP 0 * FROM [PROGRESSO]", engine).columns.tolist()
     
     df_geral = pd.concat([df_somativa, df_formativa], ignore_index=True)
     df_geral = df_geral.sort_values(by='subprograma')
-    
-    df_somativa.to_csv(arquivo_somativa, index=False)
-    df_formativa.to_csv(arquivo_formativa, index=False)
-    flu.to_csv(arquivo_fluencia, index=False)
-    cor.to_csv(arquivo_correcao, index=False)
-    df_geral.to_csv('progresso.csv', index=False)
+
+    colunas_validas = [c for c in df_geral.columns if c in colunas_progresso]
+    df_geral_insert = df_geral[colunas_validas]
+
+    with engine.begin() as conn:
+        conn.execute(text("DELETE FROM [PROGRESSO]"))
+        df_geral_insert.to_sql("PROGRESSO", conn, if_exists="append", index=False)
 
 
-def report_progresso(arquivo, tab_key, session_key, arquivo_tarefas):
+def report_progresso(tabela, tab_key, session_key, tabela_tarefas):
     
     st.session_state['active_tab'] = tab_key
     
     if session_key not in st.session_state:
-        df = pd.read_csv(arquivo)
+        df = ler_sql(tabela)
         colunas_data = df.columns[2:]
         for col in colunas_data:
             df[col] = pd.to_datetime(df[col], errors='coerce')
         st.session_state[session_key] = df
     else:
         if st.session_state[session_key].empty or st.session_state[session_key].dropna(subset=['nome']).empty:
-            df = pd.read_csv(arquivo)
+            df = ler_sql(tabela)
             colunas_data = df.columns[2:]
             for col in colunas_data:
                 df[col] = pd.to_datetime(df[col], errors='coerce')
@@ -877,7 +911,7 @@ def report_progresso(arquivo, tab_key, session_key, arquivo_tarefas):
         df_grafico["subprograma"] = df_grafico["subprograma"].astype(int)
         subs = (df_grafico["subprograma"].astype(str) + " - " + df_grafico["nome"]).unique()
 
-        df_aux = processar_tarefas(st.session_state[session_key], arquivo_tarefas)
+        df_aux = processar_tarefas(st.session_state[session_key], tabela_tarefas)
 
         chave_tarefas = f"df_aux_{tab_key}"
         if chave_tarefas not in st.session_state:
@@ -885,6 +919,7 @@ def report_progresso(arquivo, tab_key, session_key, arquivo_tarefas):
         else:
             concluido_salvo = st.session_state[chave_tarefas][["nome", "tarefas", "concluido"]].copy()
             df_aux = df_aux.drop(columns=["concluido"]).merge(concluido_salvo, on=["nome", "tarefas"], how="left")
+            df_aux = df_aux.drop_duplicates(subset=["nome", "tarefas"])  # <-- adicionar esta linha
             df_aux["concluido"] = df_aux["concluido"].fillna(False).astype(bool)
             st.session_state[chave_tarefas] = df_aux.copy()
 
@@ -939,12 +974,15 @@ def report_progresso(arquivo, tab_key, session_key, arquivo_tarefas):
         df_final = df_final.dropna(subset=['subprograma'])
         df_final["subprograma"] = df_final["subprograma"].astype(int)
         df_final = df_final.sort_values(by='subprograma')
-        df_final.to_csv(arquivo, index=False)
+
+        with engine.begin() as conn:
+            conn.execute(text(f"DELETE FROM [{tabela}]"))
+            df_final.to_sql(tabela, conn, if_exists="append", index=False)
         
         st.session_state.pop(session_key, None)
         st.session_state.pop(f"df_aux_{tab_key}", None)
         
-        atualizar_csv_geral('progresso_somativa.csv', 'progresso_formativa.csv', "progresso_fluencia.csv", "progresso_correcao.csv")
+        atualizar_banco('PROGRESSO_SOMATIVA', 'PROGRESSO_FORMATIVA', "PROGRESSO_FLUENCIA", "PROGRESSO_CORRECAO")
         st.rerun()
 
 
@@ -952,59 +990,60 @@ def report_progresso(arquivo, tab_key, session_key, arquivo_tarefas):
         return
 
     if not df_grafico.empty:
-        st.subheader("Quadro de tarefas - marque as tarefas concluídas")
-        select_sub = st.selectbox("Escolha um subprograma", options=subs, key=f'select_sub_{tab_key}')
-        if st.button(":material/check_circle: Marcar todas como concluídas", key=f"marcar_todos_{tab_key}"):
-            st.session_state[chave_tarefas].loc[
-                st.session_state[chave_tarefas]["nome"] == select_sub, "concluido"
-            ] = True
-            st.session_state[chave_tarefas][["nome", "tarefas", "concluido"]].drop_duplicates().to_csv(arquivo_tarefas, index=False)
-            tarefas_sub = st.session_state[chave_tarefas][st.session_state[chave_tarefas]["nome"] == select_sub]
-            for idx in tarefas_sub.index:
-                st.session_state[f"{tab_key}_{select_sub}_{idx}"] = True
-            st.rerun()
+            st.subheader("Quadro de tarefas - marque as tarefas concluídas")
+            select_sub = st.selectbox("Escolha um subprograma", options=subs, key=f'select_sub_{tab_key}')
+            
+            if st.button(":material/check_circle: Marcar todas como concluídas", key=f"marcar_todos_{tab_key}"):
+                st.session_state[chave_tarefas].loc[
+                    st.session_state[chave_tarefas]["nome"] == select_sub, "concluido"
+                ] = True
+                salvar_tarefas(st.session_state[chave_tarefas], tabela_tarefas, select_sub)
+                tarefas_sub = st.session_state[chave_tarefas][st.session_state[chave_tarefas]["nome"] == select_sub]
+                for idx in tarefas_sub.index:
+                    st.session_state[f"{tab_key}_{select_sub}_{idx}"] = True
+                st.rerun()
 
-        enviado, df_aux_modificado = renderizar_quadro_tarefas(
-            st.session_state[chave_tarefas].copy(), select_sub, tab_key, arquivo_tarefas
-        )
+            enviado, df_aux_modificado = renderizar_quadro_tarefas(
+                st.session_state[chave_tarefas].copy(), select_sub, tab_key, tabela_tarefas
+            )
 
-        if enviado:
-            df_aux_modificado[["nome", "tarefas", "concluido"]].drop_duplicates().to_csv(arquivo_tarefas, index=False)
-            st.session_state[chave_tarefas] = df_aux_modificado.copy()
-            st.success("Progresso das tarefas salvo!")
-            st.rerun()
+            if enviado:  
+                salvar_tarefas(df_aux_modificado, tabela_tarefas, select_sub)
+                st.session_state[chave_tarefas] = df_aux_modificado.copy()
+                st.success("Progresso das tarefas salvo!")
+                st.rerun()
 
 def report_tab5():
     report_progresso(
-        arquivo='progresso_somativa.csv',
+        tabela='PROGRESSO_SOMATIVA',
         tab_key='tab5',
         session_key='df_tab5',
-        arquivo_tarefas='tarefas_somativa.csv'
+        tabela_tarefas='TAREFAS_SOMATIVA'
     )
 
 
 def report_tab6():
     report_progresso(
-        arquivo='progresso_formativa.csv',
+        tabela='PROGRESSO_FORMATIVA',
         tab_key='tab6',
         session_key='df_tab6',
-        arquivo_tarefas='tarefas_formativa.csv'
+        tabela_tarefas='TAREFAS_FORMATIVA'
     )
 
 def report_tab7():
     report_progresso(
-        arquivo='progresso_fluencia.csv',
+        tabela='PROGRESSO_FLUENCIA',
         tab_key='tab7',
         session_key='df_tab7',
-        arquivo_tarefas='tarefas_fluencia.csv'
+        tabela_tarefas='TAREFAS_FLUENCIA'
     )
 
 def report_tab8():
     report_progresso(
-        arquivo='progresso_correcao.csv',
+        tabela='PROGRESSO_CORRECAO',
         tab_key='tab8',
         session_key='df_tab8',
-        arquivo_tarefas='tarefas_correcao.csv'
+        tabela_tarefas='TAREFAS_CORRECAO'
     )
 
 
