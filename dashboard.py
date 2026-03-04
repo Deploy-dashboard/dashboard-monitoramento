@@ -737,7 +737,7 @@ def processar_tarefas(df, tabela_tarefas):
         if df_aux.empty or "nome" not in df_aux.columns:
             raise ValueError("Arquivo de tarefas inválido ou vazio")
         df_aux["concluido"] = df_aux["concluido"].fillna(False).astype(bool)
-        # CORRIGIDO: remove duplicatas antes do merge
+        
         df_aux = df_aux.drop_duplicates(subset=["nome", "tarefas"], keep="last")
     except (FileNotFoundError, pd.errors.EmptyDataError, ValueError):
         df_aux = pd.DataFrame(columns=["nome", "tarefas", "concluido"])
@@ -750,7 +750,6 @@ def processar_tarefas(df, tabela_tarefas):
 
     df_marcos.rename(columns={"Projeto": "nome", "Tarefa": "tarefas"}, inplace=True)
     
-    # CORRIGIDO: remove duplicatas do df_marcos também
     df_marcos = df_marcos.drop_duplicates(subset=["nome", "tarefas"])
     
     df_aux = df_marcos.merge(df_aux, on=["nome", "tarefas"], how="left")
@@ -773,7 +772,6 @@ def processar_tarefas(df, tabela_tarefas):
     hoje = pd.Timestamp(date.today())
     df_aux.loc[(df_aux["Status"] == "Pendente") & (df_aux["Data"] == hoje), "Status"] = "Finaliza hoje"
     df_aux.loc[(df_aux["Status"] == "Pendente") & (df_aux["Data"] < hoje), "Status"] = "Atrasado"
-    
     return df_aux
 
 def renderizar_editor_progresso(df, tab_key, column_configs):
@@ -829,7 +827,6 @@ def ler_sql(tabela):
         return pd.read_sql(f"SELECT * FROM {tabela}", conn)
 
 def salvar_tarefas(df_tarefas, tabela_tarefas, nome):
-    """Deleta registros existentes do subprograma e reinsere, evitando duplicatas."""
     df_save = df_tarefas[["nome", "tarefas", "concluido"]].drop_duplicates()
     df_save = df_save[df_save["nome"] == nome]
 
@@ -841,6 +838,11 @@ def salvar_tarefas(df_tarefas, tabela_tarefas, nome):
         if not df_save.empty:
             df_save.to_sql(tabela_tarefas, conn, if_exists="append", index=False)
 
+def remover_tarefas(prog, nome):
+    tarefas = ler_sql(nome)
+    temp = prog["subprograma"].astype(str) + " + " + prog["nome"]
+    tarefas = tarefas[tarefas["nome"].isin(temp)]
+    tarefas.to_sql("nome", engine, if_exists="replace", index=False)
 
 def atualizar_banco(tabela_somativa, tabela_formativa, tabela_fluencia, tabela_correcao):
     df_somativa = ler_sql(tabela_somativa)
