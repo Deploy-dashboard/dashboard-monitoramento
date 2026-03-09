@@ -20,7 +20,7 @@ def conecta_banco():
         f"PWD={password};"
     )
 
-    engine = create_engine(f"mssql+pyodbc:///?odbc_connect={params}")
+    engine = create_engine(f"mssql+pyodbc:///?odbc_connect={params}", pool_pre_ping=True)
 
     return engine
 

@@ -78,28 +78,36 @@ CREATE TABLE TAREFAS_SOMATIVA(
     id INT IDENTITY(1,1) PRIMARY KEY,
     nome VARCHAR(255),
     tarefas VARCHAR(255),
-    concluido BIT
+    concluido BIT,
+    usuario_concluiu VARCHAR(255),
+	data_conclusao DATE
 );
 
 CREATE TABLE TAREFAS_FORMATIVA(
     id INT IDENTITY(1,1) PRIMARY KEY,
     nome VARCHAR(255),
     tarefas VARCHAR(255),
-    concluido BIT
+    concluido BIT,
+    usuario_concluiu VARCHAR(255),
+	data_conclusao DATE
 );
 
 CREATE TABLE TAREFAS_FLUENCIA(
     id INT IDENTITY(1,1) PRIMARY KEY,
     nome VARCHAR(255),
     tarefas VARCHAR(255),
-    concluido BIT
+    concluido BIT,
+    usuario_concluiu VARCHAR(255),
+	data_conclusao DATE
 );
 
 CREATE TABLE TAREFAS_CORRECAO(
     id INT IDENTITY(1,1) PRIMARY KEY,
     nome VARCHAR(255),
     tarefas VARCHAR(255),
-    concluido BIT
+    concluido BIT,
+    usuario_concluiu VARCHAR(255),
+	data_conclusao DATE
 );
 
 CREATE TABLE DATAS(
@@ -120,7 +128,9 @@ CREATE TABLE TAREFAS(
 	id INT IDENTITY (1,1) PRIMARY KEY, 
 	nome VARCHAR(255),
 	tarefas VARCHAR(255),
-	concluido BIT
+	concluido BIT,
+	usuario_concluiu VARCHAR(255),
+	data_conclusao DATE
 );
 
 CREATE TABLE PROGRESSO(
@@ -146,5 +156,27 @@ CREATE TABLE PROGRESSO(
 	medida_ctx DATE,
 	rel_tratamento DATE,
 	rel_verificacao DATE
+);
+
+	CREATE TABLE PROGRESSO_RECURSO (
+	subprograma INT PRIMARY KEY,
+	nome VARCHAR(255),
+	finalizacao_analise DATE,
+	acoes DATE,
+	recuperacao DATE,
+	recuperacao_t2 DATE,
+	certif_obj DATE,
+	certif_ctx DATE,
+	medida_obj DATE,
+	medida_ctx DATE
+	);
+
+	CREATE TABLE TAREFAS_RECURSO(
+    id INT IDENTITY(1,1) PRIMARY KEY,
+    nome VARCHAR(255),
+    tarefas VARCHAR(255),
+    concluido BIT,
+    usuario_concluiu VARCHAR(255),
+	data_conclusao DATE
 );
 

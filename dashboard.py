@@ -29,6 +29,7 @@ def login_page():
             client = Client()
             if client.login(username, password):
                 st.session_state.authenticated = True
+                st.session_state.username = username
                 st.rerun()
             else:
                 st.error("Usuário ou senha incorretos.")
@@ -435,8 +436,7 @@ def report_tab4():
     hoje = pd.Timestamp(date.today())
 
     if "datas" not in st.session_state:
-        with engine.connect() as conn:
-            datas = pd.read_sql("SELECT * FROM DATAS", conn)
+        datas = pd.read_sql("SELECT * FROM DATAS", engine)
         datas["inicio"] = pd.to_datetime(datas["inicio"], errors="coerce")
         datas["fim"] = pd.to_datetime(datas["fim"], errors="coerce")
         st.session_state.datas = datas
@@ -518,8 +518,13 @@ def report_tab4():
     st.session_state.datas = datas_calculadas
 
     if salvar:
-        datas_calculadas.to_sql("DATAS", engine, if_exists="append", index=False )
-        st.success("Alterações salvas com sucesso!")
+        try:
+            with engine.begin() as conn:
+                conn.execute(text("DELETE FROM [DATAS]"))
+                datas_calculadas.to_sql("DATAS", conn, if_exists="append", index=False)
+            st.success("Alterações salvas com sucesso!")
+        except Exception as e:
+            st.error(f"Erro ao salvar: {e}")
 
     datas = st.session_state.datas
 
@@ -613,16 +618,27 @@ def report_tab4():
 
 def criar_grafico_progresso(df_aux, ordem_tarefas, num_linhas):
     
-    df_aux["Data"] = pd.to_datetime(df_aux["Data"], errors='coerce')
-    
+    df_aux["Data"] = pd.to_datetime(df_aux["Data"], errors="coerce")
+    df_aux["data_conclusao"] = pd.to_datetime(df_aux["data_conclusao"], errors="coerce")
+
     mapa_tarefas = {tarefa: i for i, tarefa in enumerate(ordem_tarefas)}
     df_aux["x_linha"] = df_aux["tarefas"].map(mapa_tarefas)
+
     max_nos = df_aux["x_linha"].max() if not df_aux.empty else 0
     ordem_y = df_aux["nome"].drop_duplicates().tolist()
-    df_aux["Data_hover"] = df_aux["Data"].dt.strftime("%d/%m/%Y")
-    df_aux["Data_hover"] = df_aux["Data_hover"].fillna("Sem data definida")
-    
-    df_aux = df_aux.sort_values(by='nome', ascending=False)
+
+    mask = df_aux["Data"].notna() & df_aux["data_conclusao"].notna()
+
+    df_aux.loc[mask, "atraso"] = (
+        df_aux.loc[mask, "data_conclusao"] - df_aux.loc[mask, "Data"]
+    ).dt.days.clip(lower=1)
+
+    df_aux = df_aux.sort_values(by="nome", ascending=False)
+
+    df_aux["Data_hover"] = df_aux["Data"].dt.strftime("%d/%m/%Y").fillna("Sem data definida")
+    df_aux["Data_conclusao_hover"] = df_aux["data_conclusao"].dt.strftime("%d/%m/%Y").fillna("")
+
+    df_aux["atraso"] = df_aux["atraso"].fillna("")
     
     if df_aux.empty or not ordem_tarefas:
         fig = px.scatter(title="Nenhum dado disponível ainda.")
@@ -650,7 +666,8 @@ def criar_grafico_progresso(df_aux, ordem_tarefas, num_linhas):
             "Concluído": "green",
             "Pendente": "gray",
             "Finaliza hoje": "yellow",
-            "Atrasado": "red"
+            "Atrasado": "red",
+            "Nao se aplica": "white"
         }
     )
     
@@ -669,15 +686,28 @@ def criar_grafico_progresso(df_aux, ordem_tarefas, num_linhas):
     for trace in fig.data:
         status = trace.name
         df_trace = df_aux[df_aux["Status"] == status]
-        trace.customdata = df_trace[["nome", "tarefas", "Data_hover"]].values
-        trace.hovertemplate = (
-            "<b>Subprograma:</b> %{customdata[0]}<br>"
-            "<b>Tarefa:</b> %{customdata[1]}<br>"
-            "<b>Data:</b> %{customdata[2]}"
-            "<extra></extra>"
-        )
+        
+        if "data_conclusao" in df_trace.columns:
+            trace.customdata = df_trace[["nome", "tarefas", "Data_hover", "usuario_concluiu", "Data_conclusao_hover", "atraso"]].values
+            trace.hovertemplate = (
+                "<b>Subprograma:</b> %{customdata[0]}<br>"
+                "<b>Tarefa:</b> %{customdata[1]}<br>"
+                "<b>Data:</b> %{customdata[2]}<br>"
+                "<b>Concluído por:</b> %{customdata[3]}<br>"
+                "<b>Data conclusão:</b> %{customdata[4]}<br>"
+                "<b>Dias de atraso:</b> %{customdata[5]}"
+                "<extra></extra>"
+            )
+        else:
+            trace.customdata = df_trace[["nome", "tarefas", "Data_hover"]].values
+            trace.hovertemplate = (
+                "<b>Subprograma:</b> %{customdata[0]}<br>"
+                "<b>Tarefa:</b> %{customdata[1]}<br>"
+                "<b>Data:</b> %{customdata[2]}"
+                "<extra></extra>"
+            )
     
-    altura = min(max(400, num_linhas * 80 + 200), 1200)
+    altura = min(max(400, num_linhas * 80 + 200), 1500)
     
     if num_linhas <= 5:
         legend_y = 1.3
@@ -734,14 +764,26 @@ def processar_tarefas(df, tabela_tarefas):
     
     try:
         df_aux = ler_sql(tabela_tarefas)
-        if df_aux.empty or "nome" not in df_aux.columns:
+        if df_aux is None or df_aux.empty or "nome" not in df_aux.columns:
             raise ValueError("Arquivo de tarefas inválido ou vazio")
         df_aux["concluido"] = df_aux["concluido"].fillna(False).astype(bool)
         
+        if "usuario_concluiu" not in df_aux.columns:
+            df_aux["usuario_concluiu"] = None
+
+        if "data_conclusao" not in df_aux.columns:
+            df_aux["data_conclusao"] = None
+
+        if "nao_aplica" not in df_aux.columns:
+            df_aux["nao_aplica"] = False
+        
+        df_aux["nao_aplica"] = df_aux["nao_aplica"].fillna(False).astype(bool)
         df_aux = df_aux.drop_duplicates(subset=["nome", "tarefas"], keep="last")
     except (FileNotFoundError, pd.errors.EmptyDataError, ValueError):
-        df_aux = pd.DataFrame(columns=["nome", "tarefas", "concluido"])
+        df_aux = pd.DataFrame(columns=["nome", "tarefas", "concluido", "usuario_concluiu", "data_conclusao"])
         df_aux["concluido"] = df_aux["concluido"].astype(bool)
+        df_aux["usuario_concluiu"] = None
+        df_aux["data_conclusao"] = None
 
     df_marcos = pd.DataFrame(linhas)
 
@@ -754,6 +796,9 @@ def processar_tarefas(df, tabela_tarefas):
     
     df_aux = df_marcos.merge(df_aux, on=["nome", "tarefas"], how="left")
     df_aux["concluido"] = df_aux["concluido"].fillna(False).astype(bool)
+
+    if "usuario_concluiu" not in df_aux.columns:
+        df_aux["usuario_concluiu"] = None
     
     if 'Data_y' in df_aux.columns:
         df_aux.drop(columns='Data_y', inplace=True)
@@ -764,14 +809,30 @@ def processar_tarefas(df, tabela_tarefas):
     if 'ID_x' in df_aux.columns:
         df_aux.drop(columns='ID_x', inplace=True)
 
+    if "data_conclusao" not in df_aux.columns:
+        df_aux["data_conclusao"] = None
+
     df_aux = df_aux.drop_duplicates(subset=["nome", "tarefas"])
 
-    df_aux["Status"] = df_aux["concluido"].map({True: 'Concluído', False: 'Pendente'})
+    df_aux["Status"] = "Pendente"
+
+    df_aux.loc[df_aux["concluido"] == True, "Status"] = "Concluído"
+    df_aux.loc[df_aux["nao_aplica"] == True, "Status"] = "Nao se aplica"
     df_aux['size'] = int(5)
+
+    df_aux["data_conclusao"] = df_aux["data_conclusao"].where(df_aux["data_conclusao"].notna(), other=None)
+
+    df_aux.loc[(df_aux["concluido"] == True) & (df_aux["usuario_concluiu"].isna()), "usuario_concluiu"] = "Sem informação"
+    df_aux.loc[(df_aux["concluido"] == False) & (df_aux["usuario_concluiu"].notna()), "usuario_concluiu"] = "Sem informação"
+    df_aux.loc[(df_aux["concluido"] == False) & (df_aux["usuario_concluiu"] == 'Sem informação'), "usuario_concluiu"] = None
+    df_aux.loc[(df_aux["concluido"] == False) & ((df_aux["usuario_concluiu"] == 'Sem informação') | (df_aux["usuario_concluiu"].isna())), "data_conclusao"] = None
+    df_aux["usuario_concluiu"] = df_aux["usuario_concluiu"].fillna("")
+    df_aux["usuario_concluiu"] = df_aux["usuario_concluiu"].fillna("")
     
     hoje = pd.Timestamp(date.today())
     df_aux.loc[(df_aux["Status"] == "Pendente") & (df_aux["Data"] == hoje), "Status"] = "Finaliza hoje"
     df_aux.loc[(df_aux["Status"] == "Pendente") & (df_aux["Data"] < hoje), "Status"] = "Atrasado"
+
     return df_aux
 
 def renderizar_editor_progresso(df, tab_key, column_configs):
@@ -793,41 +854,107 @@ def renderizar_editor_progresso(df, tab_key, column_configs):
 
 
 def renderizar_quadro_tarefas(df_aux, select_sub, tab_key, tabela_tarefas):
-    
+
     with st.container(border=True):
         st.markdown(f"**{select_sub}**")
-        
+
         tarefas_sub = df_aux[df_aux["nome"] == select_sub]
-        
+
+        st.text("Marque as tarefas concluídas:")
+
         for idx, row in tarefas_sub.iterrows():
+
             chave_checkbox = f"{tab_key}_{select_sub}_{idx}"
-            
+            chave_na = f"{tab_key}_{select_sub}_{idx}_na"
+
             if chave_checkbox not in st.session_state:
                 st.session_state[chave_checkbox] = bool(row["concluido"])
-            
-            st.checkbox(
-                row["tarefas"],
-                key=chave_checkbox
-            )
-            
+
+            if chave_na not in st.session_state:
+                valor_na = row.get("nao_aplica", False)
+
+                if pd.isna(valor_na):
+                    valor_na = False
+
+                st.session_state[chave_na] = bool(valor_na)
+
+            col1, col2, col3 = st.columns([1,5,2])
+
+            with col1:
+                st.checkbox(
+                    row["tarefas"],
+                    key=chave_checkbox
+                )
+
+            with col2:
+                st.checkbox(
+                    "Não se aplica",
+                    key=chave_na
+                )
+
+            nova_status = st.session_state[chave_checkbox]
+            nao_aplica = bool(st.session_state[chave_na])
+            status_anterior = bool(row["concluido"])
+
+            if nao_aplica:
+                nova_status = False
+
+            if nova_status and not status_anterior:
+                username = st.session_state.get("username", "Usuário desconhecido")
+                hoje_str = date.today()
+
+                df_aux.loc[
+                    (df_aux["nome"] == select_sub) &
+                    (df_aux["tarefas"] == row["tarefas"]),
+                    "usuario_concluiu"
+                ] = username
+
+                df_aux.loc[
+                    (df_aux["nome"] == select_sub) &
+                    (df_aux["tarefas"] == row["tarefas"]),
+                    "data_conclusao"
+                ] = hoje_str
+
+            elif nova_status:
+                nao_aplica = False
+                with col3:
+                    usuario_salvo = row.get("usuario_concluiu", "")
+                    if usuario_salvo:
+                        st.caption(f"✓ {usuario_salvo}")
+
             df_aux.loc[
                 (df_aux["nome"] == select_sub) &
                 (df_aux["tarefas"] == row["tarefas"]),
                 "concluido"
-            ] = st.session_state[chave_checkbox]
-    
+            ] = nova_status
+
+            df_aux.loc[
+                (df_aux["nome"] == select_sub) &
+                (df_aux["tarefas"] == row["tarefas"]),
+                "nao_aplica"
+            ] = nao_aplica
+
     if st.button(":material/save: Salvar progresso das tarefas", key=f"salvar_tarefas_{tab_key}"):
         return True, df_aux
-    
+
     return False, df_aux
 
-# @st.cache_data(ttl=3600, show_spinner="Atualizando dados do sistema...")
+# @st.cache_data(ttl=600)
 def ler_sql(tabela):
-    with engine.connect() as conn:
-        return pd.read_sql(f"SELECT * FROM {tabela}", conn)
+    try:
+        return pd.read_sql(f"SELECT * FROM {tabela}", engine)
+    except:
+        st.text("Erro, recarregue a página!") 
 
 def salvar_tarefas(df_tarefas, tabela_tarefas, nome):
-    df_save = df_tarefas[["nome", "tarefas", "concluido"]].drop_duplicates()
+    colunas = ["nome", "tarefas", "concluido", "nao_aplica"]
+    if "usuario_concluiu" in df_tarefas.columns:
+        colunas.append("usuario_concluiu")
+
+    if "data_conclusao" in df_tarefas.columns:
+        colunas.append("data_conclusao")
+    
+    df_save = df_tarefas[colunas].drop_duplicates()
     df_save = df_save[df_save["nome"] == nome]
 
     with engine.begin() as conn:
@@ -932,6 +1059,7 @@ def report_progresso(tabela, tab_key, session_key, tabela_tarefas):
         hoje = pd.Timestamp(date.today())
         df_aux_plot.loc[(df_aux_plot["Status"] == "Pendente") & (df_aux_plot["Data"] == hoje), "Status"] = "Finaliza hoje"
         df_aux_plot.loc[(df_aux_plot["Status"] == "Pendente") & (df_aux_plot["Data"] < hoje), "Status"] = "Atrasado"
+        df_aux_plot.loc[df_aux_plot["nao_aplica"] == True, "Status"] = "Nao se aplica"
 
         ordem_tarefas = df_aux_plot["tarefas"].dropna().unique().tolist()
         num_linhas = len(df_aux_plot["nome"].unique())
@@ -996,9 +1124,17 @@ def report_progresso(tabela, tab_key, session_key, tabela_tarefas):
             select_sub = st.selectbox("Escolha um subprograma", options=subs, key=f'select_sub_{tab_key}')
             
             if st.button(":material/check_circle: Marcar todas como concluídas", key=f"marcar_todos_{tab_key}"):
+                hoje_str = date.today()
+                username = st.session_state.get("username", "Usuário desconhecido")
+                mask_nao_concluidas = (                           
+                    (st.session_state[chave_tarefas]["nome"] == select_sub) &
+                    (st.session_state[chave_tarefas]["concluido"] == False)
+                )
                 st.session_state[chave_tarefas].loc[
                     st.session_state[chave_tarefas]["nome"] == select_sub, "concluido"
                 ] = True
+                st.session_state[chave_tarefas].loc[mask_nao_concluidas, "usuario_concluiu"] = username   
+                st.session_state[chave_tarefas].loc[mask_nao_concluidas, "data_conclusao"] = hoje_str     
                 salvar_tarefas(st.session_state[chave_tarefas], tabela_tarefas, select_sub)
                 tarefas_sub = st.session_state[chave_tarefas][st.session_state[chave_tarefas]["nome"] == select_sub]
                 for idx in tarefas_sub.index:
@@ -1048,6 +1184,13 @@ def report_tab8():
         tabela_tarefas='TAREFAS_CORRECAO'
     )
 
+def report_tab9():
+        report_progresso(
+        tabela='PROGRESSO_RECURSO',
+        tab_key='tab9',
+        session_key='df_tab9',
+        tabela_tarefas='TAREFAS_RECURSO'
+    )
 
 def dashboard():
     
@@ -1061,7 +1204,7 @@ def dashboard():
     '''
     st.markdown(css, unsafe_allow_html=True)
     
-    tab1, tab2, tab3, tab4, tab5, tab6, tab7 = st.tabs(["Processamento / Instrumento", "Verificação", "Datas digitalização", "Progresso Somativas", "Progresso Formativas", "Progresso Fluência", "Progresso Correção"])
+    tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8 = st.tabs(["Processamento / Instrumento", "Verificação", "Datas digitalização", "Progresso Somativas", "Progresso Formativas", "Progresso Fluência", "Progresso Correção", "Progresso Recurso"])
 
     with tab1:
         st.header("Relatórios de processamento:")
@@ -1103,8 +1246,13 @@ def dashboard():
     with tab7:
         st.header("Gráfico de progresso")
         st.text("Acompanhe o progresso das tarefas referentes a cada subprograma")
-        report_tab8()        
+        report_tab8()
 
+
+    with tab8:      
+        st.header("Gráfico de progresso")
+        st.text("Acompanhe o progresso das tarefas referentes a cada subprograma")
+        report_tab9()  
 
 def main():
   
