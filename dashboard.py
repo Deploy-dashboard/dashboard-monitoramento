@@ -627,11 +627,9 @@ def criar_grafico_progresso(df_aux, ordem_tarefas, num_linhas):
     max_nos = df_aux["x_linha"].max() if not df_aux.empty else 0
     ordem_y = df_aux["nome"].drop_duplicates().tolist()
 
-    mask = df_aux["Data"].notna() & df_aux["data_conclusao"].notna()
+    mask = df_aux["Data"].notna() & df_aux["data_conclusao"].notna() & (df_aux["Data"] < df_aux["data_conclusao"])
 
-    df_aux.loc[mask, "atraso"] = (
-        df_aux.loc[mask, "data_conclusao"] - df_aux.loc[mask, "Data"]
-    ).dt.days.clip(lower=1)
+    df_aux.loc[mask, "atraso"] = (df_aux.loc[mask, "data_conclusao"] - df_aux.loc[mask, "Data"]).dt.days.clip(lower=1)
 
     df_aux = df_aux.sort_values(by="nome", ascending=False)
 
@@ -860,8 +858,6 @@ def renderizar_quadro_tarefas(df_aux, select_sub, tab_key, tabela_tarefas):
 
         tarefas_sub = df_aux[df_aux["nome"] == select_sub]
 
-        st.text("Marque as tarefas concluídas:")
-
         for idx, row in tarefas_sub.iterrows():
 
             chave_checkbox = f"{tab_key}_{select_sub}_{idx}"
@@ -878,15 +874,19 @@ def renderizar_quadro_tarefas(df_aux, select_sub, tab_key, tabela_tarefas):
 
                 st.session_state[chave_na] = bool(valor_na)
 
-            col1, col2, col3 = st.columns([1,5,2])
+            col1, col2, col3, col4 = st.columns([1,1,5,2])
 
             with col1:
+                st.text(row["tarefas"])
+
+            with col2:
                 st.checkbox(
-                    row["tarefas"],
+                    "Concluido",
+                    # row["tarefas"],
                     key=chave_checkbox
                 )
 
-            with col2:
+            with col3:
                 st.checkbox(
                     "Não se aplica",
                     key=chave_na
@@ -917,7 +917,7 @@ def renderizar_quadro_tarefas(df_aux, select_sub, tab_key, tabela_tarefas):
 
             elif nova_status:
                 nao_aplica = False
-                with col3:
+                with col4:
                     usuario_salvo = row.get("usuario_concluiu", "")
                     if usuario_salvo:
                         st.caption(f"✓ {usuario_salvo}")
