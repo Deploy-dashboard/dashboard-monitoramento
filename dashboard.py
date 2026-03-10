@@ -665,7 +665,7 @@ def criar_grafico_progresso(df_aux, ordem_tarefas, num_linhas):
             "Pendente": "gray",
             "Finaliza hoje": "yellow",
             "Atrasado": "red",
-            "Nao se aplica": "white"
+            "Não se aplica": "white"
         }
     )
     
@@ -815,7 +815,7 @@ def processar_tarefas(df, tabela_tarefas):
     df_aux["Status"] = "Pendente"
 
     df_aux.loc[df_aux["concluido"] == True, "Status"] = "Concluído"
-    df_aux.loc[df_aux["nao_aplica"] == True, "Status"] = "Nao se aplica"
+    df_aux.loc[df_aux["nao_aplica"] == True, "Status"] = "Não se aplica"
     df_aux['size'] = int(5)
 
     df_aux["data_conclusao"] = df_aux["data_conclusao"].where(df_aux["data_conclusao"].notna(), other=None)
@@ -1059,7 +1059,7 @@ def report_progresso(tabela, tab_key, session_key, tabela_tarefas):
         hoje = pd.Timestamp(date.today())
         df_aux_plot.loc[(df_aux_plot["Status"] == "Pendente") & (df_aux_plot["Data"] == hoje), "Status"] = "Finaliza hoje"
         df_aux_plot.loc[(df_aux_plot["Status"] == "Pendente") & (df_aux_plot["Data"] < hoje), "Status"] = "Atrasado"
-        df_aux_plot.loc[df_aux_plot["nao_aplica"] == True, "Status"] = "Nao se aplica"
+        df_aux_plot.loc[df_aux_plot["nao_aplica"] == True, "Status"] = "Não se aplica"
 
         ordem_tarefas = df_aux_plot["tarefas"].dropna().unique().tolist()
         num_linhas = len(df_aux_plot["nome"].unique())
