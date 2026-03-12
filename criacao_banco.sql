@@ -49,7 +49,9 @@ CREATE TABLE PROGRESSO_FORMATIVA(
 CREATE TABLE PROGRESSO_FLUENCIA( 
     subprograma INT PRIMARY KEY,
     nome VARCHAR(255),
+	aloc_cor DATE,
     conf_hmg DATE,
+	conf_carga DATE,
 	conf_pro_t1 DATE,
     certif_sinc DATE,
     nm_aluno DATE,
@@ -80,7 +82,8 @@ CREATE TABLE TAREFAS_SOMATIVA(
     tarefas VARCHAR(255),
     concluido BIT,
     usuario_concluiu VARCHAR(255),
-	data_conclusao DATE
+	data_conclusao DATE,
+	nao_aplica BIT
 );
 
 CREATE TABLE TAREFAS_FORMATIVA(
@@ -89,7 +92,8 @@ CREATE TABLE TAREFAS_FORMATIVA(
     tarefas VARCHAR(255),
     concluido BIT,
     usuario_concluiu VARCHAR(255),
-	data_conclusao DATE
+	data_conclusao DATE,
+	nao_aplica BIT
 );
 
 CREATE TABLE TAREFAS_FLUENCIA(
@@ -98,7 +102,8 @@ CREATE TABLE TAREFAS_FLUENCIA(
     tarefas VARCHAR(255),
     concluido BIT,
     usuario_concluiu VARCHAR(255),
-	data_conclusao DATE
+	data_conclusao DATE,
+	nao_aplica BIT
 );
 
 CREATE TABLE TAREFAS_CORRECAO(
@@ -107,7 +112,8 @@ CREATE TABLE TAREFAS_CORRECAO(
     tarefas VARCHAR(255),
     concluido BIT,
     usuario_concluiu VARCHAR(255),
-	data_conclusao DATE
+	data_conclusao DATE,
+	nao_aplica BIT
 );
 
 CREATE TABLE DATAS(
@@ -130,7 +136,8 @@ CREATE TABLE TAREFAS(
 	tarefas VARCHAR(255),
 	concluido BIT,
 	usuario_concluiu VARCHAR(255),
-	data_conclusao DATE
+	data_conclusao DATE,
+	nao_aplica BIT
 );
 
 CREATE TABLE PROGRESSO(
@@ -177,6 +184,7 @@ CREATE TABLE PROGRESSO(
     tarefas VARCHAR(255),
     concluido BIT,
     usuario_concluiu VARCHAR(255),
-	data_conclusao DATE
+	data_conclusao DATE,
+	nao_aplica BIT
 );
 
