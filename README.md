@@ -1,3 +1,13 @@
+## complementos necessários:
+
+pip	install	plotly			
+pip	install	python-dotenv			
+pip	install	sqlalchemy			
+pip	install	sqlalchemy pandas	pymysql	cryptography
+pip	install	pyodbc			
+pip	install	openpyxl			
+pip	install	openpyxl xlsxwriter		
+
 # dashboard_cpd
 Repositório contendo os códigos do dashboard dos repositórios CPD
 ## Como rodar:
