@@ -1,11 +1,11 @@
 ## complementos necessários:
 
-pip	install	plotly			
-pip	install	python-dotenv			
-pip	install	sqlalchemy			
+pip	install	plotly
+pip	install	python-dotenv
+pip	install	sqlalchemy
 pip	install	sqlalchemy pandas	pymysql	cryptography
-pip	install	pyodbc			
-pip	install	openpyxl			
+pip	install	pyodbc
+pip	install	openpyxl
 pip	install	openpyxl xlsxwriter		
 
 # dashboard_cpd
